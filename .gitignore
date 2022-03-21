@@ -8,8 +8,6 @@ analysis/reference
 #### Data
 *.ftr
 
-### Reference notebooks
-
 ### R
 .Rhistory
 .Rproj.user

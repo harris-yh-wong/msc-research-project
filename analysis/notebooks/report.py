@@ -19,12 +19,10 @@ def report_change_in_nrow(before, after, operation=None):
 
 
 def report_train_test_split(X_train, X_test, y_train, y_test):
-    print(
-        f"""Training Features Shape: {X_train.shape}
-    Training Labels Shape: {y_train.shape}
-    Testing Features Shape: {X_test.shape}
-    Testing Labels Shape: {y_test.shape}"""
-    )
+    print(f"Training Features Shape: {X_train.shape}")
+    print(f"Training Labels Shape: {y_train.shape}")
+    print(f"Testing Features Shape: {X_test.shape}")
+    print(f"Testing Labels Shape: {y_test.shape}")
     return None
 
 

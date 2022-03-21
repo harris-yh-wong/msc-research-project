@@ -16,8 +16,10 @@ def clean_all_phq(df):
     return df2
 
 
-def clean_slps(df):
-    # data types
+def clean_slps(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Clean sleep stages by cleaning time formats and creating columns of start/end times
+    """
     df2 = df.copy()
     df2["start"] = pd.to_datetime(df2.time)
     df2["start_date"] = df2["start"].dt.date
@@ -162,48 +164,58 @@ def normalize_binned(df: pd.DataFrame, over=120):
 
 #### HAOTIAN's
 
+
 def drop_days_delta(target_select, threshold=14):
     """
     Drop PHQ test records which is <14 days from previous.
     From Haotian's script
     """
-    
+
     # make copy
     cp = target_select.copy()
-    
+
     # clean
-    cp['date'] = pd.to_datetime(cp['test_date'])
+    cp["date"] = pd.to_datetime(cp["test_date"])
 
     # calculate number of days from previous record
-    target_date_diff = ( cp[['id','date']]
-        .sort_values(['id', 'date'])
-        .groupby('id')
-        .diff()
+    target_date_diff = (
+        cp[["id", "date"]].sort_values(["id", "date"]).groupby("id").diff()
     )
     # combine with main df
-    target_date_diff['daysdelta'] = target_date_diff['date'] / np.timedelta64(1, 'D')
-    target_select_clean = pd.concat([cp, target_date_diff['daysdelta']], axis=1)
+    target_date_diff["daysdelta"] = target_date_diff["date"] / np.timedelta64(1, "D")
+    target_select_clean = pd.concat([cp, target_date_diff["daysdelta"]], axis=1)
 
     # filter
-    out = target_select_clean.loc[(target_select_clean['daysdelta'] >= threshold) | (target_select_clean['daysdelta'].isna()),:]
+    out = target_select_clean.loc[
+        (target_select_clean["daysdelta"] >= threshold)
+        | (target_select_clean["daysdelta"].isna()),
+        :,
+    ]
     # clean output
-    out = out.drop(['date', 'daysdelta'], axis=1)
-    report_change_in_nrow(target_select, out, operation="Drop PHQ records which is <14 days from previous")   
+    out = out.drop(["date", "daysdelta"], axis=1)
+    report_change_in_nrow(
+        target_select, out, operation="Drop PHQ records which is <14 days from previous"
+    )
 
     return out
 
-    
-def generate_ts_y(df, column_id='id_new', column_index='index', column_features=['AWAKE','LIGHT','DEEP','REM']):
 
-    ### Generate time series (many rows for each y label) and corresponding . The ID column in the time series dataframe 
-    
+def generate_ts_y(
+    df,
+    column_id="id_new",
+    column_index="index",
+    column_features=["AWAKE", "LIGHT", "DEEP", "REM"],
+):
+
+    ### Generate time series (many rows for each y label) and corresponding . The ID column in the time series dataframe
+
     col_select = column_features + [column_index] + [column_id]
     input_df = df[col_select].copy()
-    
+
     ts = input_df.reset_index(drop=True)
-    y = input_df.groupby(column_id).tail(1).set_index(column_id)['target']
+    y = input_df.groupby(column_id).tail(1).set_index(column_id)["target"]
 
     ts_ind = set(ts[column_id])
     y_ind = set(y.index)
-    assert (ts_ind == y_ind), "ts and y features don't match"
+    assert ts_ind == y_ind, "ts and y features don't match"
     return ts, y

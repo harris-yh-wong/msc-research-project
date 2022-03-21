@@ -1,0 +1,63 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+slp_kcl <- readr::read_csv("data/source/all_sleep_features_timing_kcl.csv") %>% 
+    setNames(c("pid", "time", "stages", "duration"))
+```
+
+```{r}
+plot_gannt <- function(df, limit=5) {
+    df <- df %>% 
+        arrange(time) %>%
+        # add order
+        group_by(date) %>% 
+        mutate(order = factor(row_number()) ) %>% 
+        ungroup() %>% 
+        # pivot
+        rename(start = time) %>% 
+        mutate(end = start + lubridate::seconds(duration)) %>% 
+        pivot_longer(cols = c(start, end), names_to = "startend", values_to = "time")
+    
+    n_days <- length(unique(df$date))
+    if (n_days>limit) stop('Number of days exceed limit. Plotting aborted.')
+    
+    p <- df %>%
+        ggplot(aes(x = time, y = order, col = stages)) +
+        geom_line(size = 3) +
+        scale_y_discrete(limits=rev)+
+        theme_bw()+
+        facet_wrap(~date, scales="free")
+    return(p)
+}
+```
+
+
+```{r}
+
+slp <- slp_kcl %>% 
+    mutate(date = lubridate::date(time)) %>% 
+    filter(pid == "3c6671b8-45ae-4552-b92b-934ec6bbb89f") 
+
+dates <- lubridate::ymd(c("2018-11-12"))
+slp <- slp %>% 
+    filter(date %in% dates)
+
+plot_gannt(slp, limit=100)
+
+```
+
+
+
+## PHQs
+
+```{r}
+phqs <- read_csv("data/source/all_")
+```
+

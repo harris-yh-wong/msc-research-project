@@ -5,6 +5,7 @@ PARSE/
 .vscode/
 
 ### R
+.Rhistory
 .Rproj.user
 *.Rproj.user
 *.Rproj

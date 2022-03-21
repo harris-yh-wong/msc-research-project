@@ -8,6 +8,9 @@ analysis/reference
 #### Data
 *.ftr
 
+### Files
+analysis/notebooks/temp.py
+
 ### R
 .Rhistory
 .Rproj.user

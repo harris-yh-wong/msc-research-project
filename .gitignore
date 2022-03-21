@@ -2,6 +2,7 @@
 data/source
 admin/
 PARSE/
+.vscode/
 
 ### R
 .Rproj.user

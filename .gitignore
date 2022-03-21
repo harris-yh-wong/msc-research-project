@@ -1,7 +1,6 @@
 ### Directories
 data/source
-admin/
-PARSE/
+_supplementary/
 .vscode/
 analysis/reference
 

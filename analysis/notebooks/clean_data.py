@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 from helper import *
-
+import report
 
 # from pandarallel import pandarallel  # parallel processing
 
@@ -92,7 +92,7 @@ def dedup_timeseries(ts: pd.DataFrame):
         pd.DataFrame: time series dataframe, deduplicated
     """
     dedupped = ts.sort_values(["pid", "t", "start_date"]).groupby(["pid", "t"]).tail(1)
-    report_change_in_nrow(ts, dedupped)
+    report.report_change_in_nrow(ts, dedupped)
     return dedupped
 
 

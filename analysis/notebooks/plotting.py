@@ -12,17 +12,21 @@ import matplotlib.patches
 import datetime as dt
 
 
-def subset_intervals(intervals: pd.DataFrame, start_date: dt.date, end_date, id: list):
+def subset_intervals(intervals: pd.DataFrame, start_date=None, end_date=None, id=None):
 
     """Subset intervals dataframe by dates and pid"""
 
+    ### if none: do not subset
     if type(id) is str:
         id = [id]
 
-    interval_query = intervals.loc[intervals["pid"].isin(id), :]
-    interval_query = interval_query.query(
-        "start_date >= @start_date & start_date <= @end_date"
-    )
+    if not id:
+        interval_query = intervals.loc[intervals["pid"].isin(id), :]
+    if not start_date:
+        interval_query = interval_query.query("start_date >= @start_date")
+    if not end_date:
+        interval_query = interval_query.query("end_date <= @end_date")
+
     return interval_query
 
 

@@ -3,6 +3,12 @@ data/source
 admin/
 PARSE/
 .vscode/
+analysis/reference
+
+#### Data
+*.ftr
+
+### Reference notebooks
 
 ### R
 .Rhistory

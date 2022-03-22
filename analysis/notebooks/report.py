@@ -6,15 +6,16 @@ import logging
 
 
 def report_change_in_nrow(before, after, operation=None):
-    if not operation:
-        operation = ""
     n_before = before.shape[0]
     n_after = after.shape[0]
     n_change = n_after - n_before
     pc_remain = round(n_after / n_before * 100, 2)
-    print(
-        f"# {operation}:\n{n_before}->{n_after} rows (Change = {n_change}) (nrow after = {pc_remain}% of before)"
-    )
+
+    msg = f"{n_before}->{n_after} rows (Change = {n_change}) (nrow after = {pc_remain}% of before)"
+    if operation is not None:
+        msg = "# " + operation + "\n" + msg
+
+    print(msg)
     return None
 
 

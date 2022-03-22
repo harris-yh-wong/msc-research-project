@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 import logging
-import dtale
 import time
 
 
@@ -17,12 +16,12 @@ class Timer(object):
 
     def __enter__(self):
         self.tstart = time.time()
-
-    def __exit__(self, type, value, traceback):
         if self.name:
             print(
                 "# [%s]" % self.name,
             )
+
+    def __exit__(self, type, value, traceback):
         print("Elapsed: %.1f seconds" % (time.time() - self.tstart))
 
 
@@ -66,6 +65,6 @@ def cartesian_product(*arrays):
     return arr.reshape(-1, la)
 
 
-def dtale_url(obj, **kargs):
-    d = dtale.show(obj, **kargs)
-    return d._main_url
+# def dtale_url(obj, **kargs):
+#     d = dtale.show(obj, **kargs)
+#     return d._main_url

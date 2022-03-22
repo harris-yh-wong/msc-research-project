@@ -4,7 +4,7 @@ import pandas as pd
 
 from mappings import *
 from helper import *
-
+import report
 
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
@@ -12,22 +12,32 @@ import matplotlib.patches
 import datetime as dt
 
 
-def subset_intervals(intervals: pd.DataFrame, start_date=None, end_date=None, id=None):
+def subset_intervals(
+    intervals: pd.DataFrame, start_date=None, end_date=None, id=None, msg=None
+):
 
-    """Subset intervals dataframe by dates and pid"""
+    """s intervals dataframe by dates and pid"""
 
-    ### if none: do not subset
-    if type(id) is str:
-        id = [id]
+    ### if none: do not s
 
-    if not id:
-        interval_query = intervals.loc[intervals["pid"].isin(id), :]
-    if not start_date:
-        interval_query = interval_query.query("start_date >= @start_date")
-    if not end_date:
-        interval_query = interval_query.query("end_date <= @end_date")
+    s = intervals.copy()
 
-    return interval_query
+    if id is not None:
+        if type(id) is str:
+            id = [id]
+        s = s[s["pid"].isin(id)]
+
+    if start_date is not None:
+        start_timestamp = pd.Timestamp(start_date)
+        s = s.loc[s["start"] >= start_timestamp]
+
+    if end_date is not None:
+        end_timestamp = pd.Timestamp(end_date + pd.Timedelta(1, "day"))
+        s = s.loc[s["end"] <= end_timestamp]
+
+    report.report_change_in_nrow(intervals, s, operation=msg)
+
+    return s
 
 
 def plot_gannts(df, metadata, max_plots=5):
@@ -142,7 +152,7 @@ def plot_stages(plotdf, metadata, c_dict=None):
     return fig
 
 
-def plot_phq_trajectories(df, outfile=None):
+def plot_phs_trajectories(df, outfile=None):
 
     ### params
     depr_cutoff = 10
@@ -157,11 +167,11 @@ def plot_phq_trajectories(df, outfile=None):
     dfcp = df.copy()
     date_min = dfcp["time"].dt.date.min()
     date_max = dfcp["time"].dt.date.max()
-    phq_min = dfcp["phq"].min()
-    phq_max = dfcp["phq"].max()
+    phs_min = dfcp["phs"].min()
+    phs_max = dfcp["phs"].max()
 
-    ### sort the PIDs in PHQS by % depr
-    dfcp["depr"] = dfcp["phq"] >= depr_cutoff
+    ### sort the PIDs in PHsS by % depr
+    dfcp["depr"] = dfcp["phs"] >= depr_cutoff
     pid_depr_pc = (
         dfcp[["pid", "depr"]]
         .groupby(["pid"])
@@ -190,10 +200,10 @@ def plot_phq_trajectories(df, outfile=None):
     for i, (pid, depr_pc) in enumerate(zip(pids, depr_pc)):
         # set axis
         ax = flt[i]
-        # subset by pid
-        subset = dfcp.loc[dfcp["pid"] == pid]
-        x = subset["time"].dt.date
-        y = subset["phq"]
+        # s by pid
+        s = dfcp.loc[dfcp["pid"] == pid]
+        x = s["time"].dt.date
+        y = s["phs"]
         # plot
         ax.plot(x, y, "o")
         # plot horizontal cutoff
@@ -202,7 +212,7 @@ def plot_phq_trajectories(df, outfile=None):
         # formatting
         ax.title.set_text(f"{pid} ({depr_pc}%)")
         ax.set_xlim(date_min, date_max)
-        ax.set_ylim(phq_min - 1, phq_max + 1)
+        ax.set_ylim(phs_min - 1, phs_max + 1)
         # plt.gca().invert_yaxis()
         # ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
         # ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
@@ -212,7 +222,7 @@ def plot_phq_trajectories(df, outfile=None):
 
     ### Formatting overall
     # plt.suptitle(
-    #     f"PHQ trajectories for {n_pid} patients, depression percent in parenthesis",
+    #     f"PHs trajectories for {n_pid} patients, depression percent in parenthesis",
     #     fontsize=24
     # )
 

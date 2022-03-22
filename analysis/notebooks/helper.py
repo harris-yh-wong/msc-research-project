@@ -2,6 +2,28 @@ import pandas as pd
 import numpy as np
 import os
 import logging
+import dtale
+import time
+
+
+class Timer(object):
+    """
+    helper class to timing blocks of code
+    Source: https://stackoverflow.com/questions/5849800/what-is-the-python-equivalent-of-matlabs-tic-and-toc-functions
+    """
+
+    def __init__(self, name=None):
+        self.name = name
+
+    def __enter__(self):
+        self.tstart = time.time()
+
+    def __exit__(self, type, value, traceback):
+        if self.name:
+            print(
+                "# [%s]" % self.name,
+            )
+        print("Elapsed: %.1f seconds" % (time.time() - self.tstart))
 
 
 def is_consecutive(l):
@@ -42,3 +64,8 @@ def cartesian_product(*arrays):
     for i, a in enumerate(np.ix_(*arrays)):
         arr[..., i] = a
     return arr.reshape(-1, la)
+
+
+def dtale_url(obj, **kargs):
+    d = dtale.show(obj, **kargs)
+    return d._main_url

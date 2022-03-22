@@ -5,6 +5,7 @@ import pandas as pd
 import datetime as dt
 from helper import *
 import report
+from deprecated import deprecated
 
 # from pandarallel import pandarallel  # parallel processing
 
@@ -29,7 +30,8 @@ def clean_slps(df: pd.DataFrame) -> pd.DataFrame:
     return df2
 
 
-def explode2ts(
+@deprecated(reason="replaced by loop comprehension")
+def _explode2ts(
     intervals,
     ID="intervalID",
     start="start",
@@ -49,6 +51,19 @@ def explode2ts(
     Returns:
         pd.DataFrame: time series dataframe
     """
+
+    def expand_to_start_times(row, start_col_name="start", end_col_name="end"):
+        """
+        Expand a time interval denoted by start-end to a list of start times
+        Helper function called by explode2ts
+
+        Input: row[start_column] = 2019-01-01 00:01:00, row[end_column] = 2019-0101 00:02:30
+        Output: ['2019-01-01 00:01:00', '2019-01-01 00:01:30', '2019-01-01 00:02:00']
+        """
+        return pd.date_range(
+            start=row[start_col_name], end=row[end_col_name], freq="30s", closed=None
+        )
+
     timeseries = intervals[[ID, start, end]]
     if multiprocessing:
         print("no multiprocessing, fix later")
@@ -57,24 +72,25 @@ def explode2ts(
         #     expand_to_start_times, start=start, end=end, axis=1
         # )
         timeseries[time] = timeseries.apply(
-            expand_to_start_times, start=start, end=end, axis=1
+            expand_to_start_times, start_col_name=start, end_col_name=end, axis=1
         )
     else:
         timeseries[time] = timeseries.apply(
-            expand_to_start_times, start=start, end=end, axis=1
+            expand_to_start_times, start_col_name=start, end_col_name=end, axis=1
         )
+
     timeseries = timeseries[[ID, time]].explode(time)
     return timeseries
 
 
-def expand_to_start_times(row, start="start", end="end"):
-    """Expand a time interval denoted by start-end to a list of start times
-    Helper function called by explode2ts
-
-    Input: Start = 2019-01-01 00:01:00, End = 2019-0101 00:02:30
-    Output: ['2019-01-01 00:01:00', '2019-01-01 00:01:30', '2019-01-01 00:02:00']
-    """
-    return pd.date_range(start=row[start], end=row[end], freq="30s", closed="left")
+def explode2ts(df):
+    data = (
+        (row.pid, t, row.stages)
+        for row in df.itertuples()
+        for t in pd.date_range(row.start, row.end, freq="30s")
+    )
+    ts = pd.DataFrame(data=data, columns=["pid", "t", "stages"])
+    return ts
 
 
 def time2datetime(t):
@@ -168,7 +184,7 @@ def normalize_binned(df: pd.DataFrame, over=120):
 def drop_days_delta(target_select, threshold=14):
     """
     Drop PHQ test records which is <14 days from previous.
-    From Haotian's script
+    Author: Haotian Gao
     """
 
     # make copy
@@ -193,7 +209,7 @@ def drop_days_delta(target_select, threshold=14):
     ]
     # clean output
     out = out.drop(["date", "daysdelta"], axis=1)
-    report_change_in_nrow(
+    report.report_change_in_nrow(
         target_select, out, operation="Drop PHQ records which is <14 days from previous"
     )
 

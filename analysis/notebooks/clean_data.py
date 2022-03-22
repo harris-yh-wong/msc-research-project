@@ -84,18 +84,29 @@ def _explode2ts(
 
 
 def explode2ts(df):
+    # the start_date is kept because overlap-removal step requires this column for deciding which label to keep/discard
     data = (
-        (row.pid, t, row.stages)
+        (row.pid, t, row.start_date, row.stages)
         for row in df.itertuples()
         for t in pd.date_range(row.start, row.end, freq="30s")
     )
-    ts = pd.DataFrame(data=data, columns=["pid", "t", "stages"])
+    ts = pd.DataFrame(data=data, columns=["pid", "t", "start_date", "stages"])
     return ts
 
 
 def time2datetime(t):
     date = dt.date(1970, 1, 1)
     return dt.datetime.combine(date, t)
+
+
+def subset_timeseries_within_interval(timeseries, start, end):
+    subset = (
+        timeseries.set_index("t", inplace=False)
+        .between_time(start, end)
+        .reset_index(inplace=False)
+    )
+    report.report_change_in_nrow(timeseries, subset)
+    return subset
 
 
 def dedup_timeseries(ts: pd.DataFrame):

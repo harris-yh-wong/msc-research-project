@@ -156,21 +156,16 @@ def bin_by_time(ts: pd.DataFrame, freq="H"):
         pd.DataFrame: Binned dataframe
     """
 
-    print(f"copy {datetime.now()}")
     df = ts.copy()
 
-    print(f"dummy code {datetime.now()}")
     stages = ["AWAKE", "LIGHT", "DEEP", "REM"]
     df["stages"] = pd.Categorical(df["stages"], categories=stages, ordered=False)
-    print(f"concat dummies {datetime.now()}")
     df = pd.concat([df, pd.get_dummies(df["stages"])], axis=1)
 
-    print(f"aggregate {datetime.now()}")
     group_by = ["pid", pd.Grouper(key="t", freq=freq)]
     binned = df.groupby(group_by)[stages].agg("sum")
     binned.reset_index(inplace=True)
 
-    print(f"rowsum {datetime.now()}")
     binned["sum"] = binned.sum(axis=1)
 
     report.report_change_in_nrow(ts, binned)

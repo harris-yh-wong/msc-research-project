@@ -1,5 +1,6 @@
 import os
 from re import A
+from telnetlib import TSPEED
 import numpy as np
 import pandas as pd
 import datetime as dt
@@ -123,6 +124,7 @@ def dedup_timeseries(ts: pd.DataFrame):
     return dedupped
 
 
+@deprecated(reason="replaced by a more flexible bin_by_time routine")
 def bin_by_hour(ts: pd.DataFrame):
     """Bin sleep stage time series by hour
 
@@ -140,6 +142,41 @@ def bin_by_hour(ts: pd.DataFrame):
     return binned
 
 
+from datetime import datetime
+
+
+def bin_by_time(ts: pd.DataFrame, freq="H"):
+    """Bin time series by the time
+
+    Args:
+        ts (pd.DataFrame): Time series dataframe
+        freq (str, optional): Frequency to bin by. Defaults to "H".
+
+    Returns:
+        pd.DataFrame: Binned dataframe
+    """
+
+    print(f"copy {datetime.now()}")
+    df = ts.copy()
+
+    print(f"dummy code {datetime.now()}")
+    stages = ["AWAKE", "LIGHT", "DEEP", "REM"]
+    df["stages"] = pd.Categorical(df["stages"], categories=stages, ordered=False)
+    print(f"concat dummies {datetime.now()}")
+    df = pd.concat([df, pd.get_dummies(df["stages"])], axis=1)
+
+    print(f"aggregate {datetime.now()}")
+    group_by = ["pid", pd.Grouper(key="t", freq=freq)]
+    binned = df.groupby(group_by)[stages].agg("sum")
+    binned.reset_index(inplace=True)
+
+    print(f"rowsum {datetime.now()}")
+    binned["sum"] = binned.sum(axis=1)
+
+    report.report_change_in_nrow(ts, binned)
+    return binned
+
+
 def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
     """Expand to hourly binned dataframe to a full list of hours (user-supplied, defaults to 8pm to 10am), fill with NAs if empty. Grouped by the columns specified in the 'by' option
 
@@ -151,9 +188,9 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
     Returns:
         _type_: _description_
     """
-    if not by_columns:
+    if by_columns is None:
         by_columns = ["pid", "start_date"]
-    if not hours:
+    if hours is None:
         hours = [20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     #! inefficient approach, fix later
@@ -165,8 +202,10 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
 
     on_columns = by_columns + ["hour"]
     expanded = pd.merge(fulldf, df, on=on_columns, how="left")
-    out = expanded.fillna(0, inplace=False)
-    return out
+    expanded.fillna(0, inplace=True)
+
+    report.report_change_in_nrow(df, expanded)
+    return expanded
 
 
 def normalize_binned(df: pd.DataFrame, over=120):
@@ -186,6 +225,7 @@ def normalize_binned(df: pd.DataFrame, over=120):
     binned["REM"] = binned["REM"] / over
     if "sum" in binned.columns:
         binned["sum"] = binned["sum"] / over
+
     return binned
 
 

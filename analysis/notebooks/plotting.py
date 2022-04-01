@@ -228,3 +228,86 @@ def plot_phs_trajectories(df, outfile=None):
 
     plt.savefig(outfile)
     return None
+
+
+def plot_binned(df, max_plots=5):
+
+    primary_keys = df["id_new"].unique()
+    n_plots = len(primary_keys)
+
+    if n_plots > max_plots:
+        print(f"TOO MANY PLOTS ({n_plots}). INCREASE MAX_PLOTS")
+        n_plots = max_plots
+
+    for i in range(n_plots):
+        key = primary_keys[i]
+        delta_t = df.loc[df["id_new"] == key]
+        delta_t[["AWAKE", "LIGHT", "DEEP", "REM"]].plot.line(subplots=True)
+        plt.title(str(delta_t["target"].unique()))
+        plt.show()
+
+    return None
+
+
+def plot_imp(classifier, features, n_features=5):
+    ### Default
+    imp = classifier.feature_importances_
+    sorted_idx = imp.argsort()
+    idx = sorted_idx[0:n_features]
+    plt.barh(features[idx], classifier.feature_importances_[idx])
+    plt.xlabel("Random Forest Feature Importance")
+
+
+def plot_imp_perm(imp, features, n=5):
+    ### Permutation importance
+    perm_sorted_idx = imp["importances_mean"].argsort()
+    perm_idx = perm_sorted_idx[::-1][:n]  # n largest first
+    plt.barh(features[perm_idx], imp["importances_mean"][perm_idx])
+    plt.xlabel("Permutation Importance")
+    plt.gca().invert_yaxis()
+
+
+def plot_search_results(grid):
+    """
+    Plot
+    Params:
+        grid: A trained GridSearchCV object.
+    """
+    #todo  Compatibility with 1 parameter
+
+    ## Results from grid search
+    results = grid.cv_results_
+    means_test = results["mean_test_score"]
+    stds_test = results["std_test_score"]
+    means_train = results["mean_train_score"]
+    stds_train = results["std_train_score"]
+
+    ## Getting indexes of values per hyper-parameter
+    masks = []
+    masks_names = list(grid.best_params_.keys())
+    for p_k, p_v in grid.best_params_.items():
+        masks.append(list(results["param_" + p_k].data == p_v))
+
+    params = grid.param_grid
+
+    ## Ploting results
+    fig, ax = plt.subplots(1, len(params), sharex="none", sharey="all", figsize=(20, 5))
+    fig.suptitle("Score per parameter")
+    fig.text(0.04, 0.5, "MEAN SCORE", va="center", rotation="vertical")
+    pram_preformace_in_best = {}
+    for i, p in enumerate(masks_names):
+        m = np.stack(masks[:i] + masks[i + 1 :])
+        pram_preformace_in_best
+        best_parms_mask = m.all(axis=0)
+        best_index = np.where(best_parms_mask)[0]
+        x = np.array(params[p])
+        y_1 = np.array(means_test[best_index])
+        e_1 = np.array(stds_test[best_index])
+        y_2 = np.array(means_train[best_index])
+        e_2 = np.array(stds_train[best_index])
+        ax[i].errorbar(x, y_1, e_1, linestyle="--", marker="o", label="test")
+        ax[i].errorbar(x, y_2, e_2, linestyle="-", marker="^", label="train")
+        ax[i].set_xlabel(p.upper())
+
+    plt.legend()
+    plt.show()

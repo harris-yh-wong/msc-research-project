@@ -47,3 +47,22 @@ def report_preprocessed(df2):
 
     hours_by_target_and_id = df2.groupby("target")["id_new"].value_counts()
     return hours_by_target_and_id
+
+
+def combine_classification_reports(report_dicts, names):
+
+    results = []
+    for report_dict, name in zip(report_dicts, names):
+        df = pd.DataFrame(report_dict).transpose().reset_index(level=0)
+        df.loc[df["index"] == "accuracy", ["precision", "recall"]] = None
+
+        support = df.loc[df["index"] == "macro avg", "support"].values
+        df.loc[df["index"] == "accuracy", "support"] = support
+
+        df["name"] = name
+
+        df = df[["name", "index", "precision", "recall", "f1-score", "support"]]
+        results.append(df)
+
+    combined = pd.concat(results)
+    return combined

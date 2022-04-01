@@ -229,23 +229,24 @@ def normalize_binned(df: pd.DataFrame, over=120):
 
 def drop_days_delta(target_select, threshold=14):
     """
-    Drop PHQ test records which is <14 days from previous.
+    Drop PHQ test records which is <14 days from previous result
+    The logic is to take the last record
     Author: Haotian Gao
     """
 
     # make copy
-    cp = target_select.copy()
+    tgt = target_select.copy()
 
     # clean
-    cp["date"] = pd.to_datetime(cp["test_date"])
+    tgt["date"] = pd.to_datetime(tgt["test_date"])
 
     # calculate number of days from previous record
     target_date_diff = (
-        cp[["id", "date"]].sort_values(["id", "date"]).groupby("id").diff()
+        tgt[["id", "date"]].sort_values(["id", "date"]).groupby("id").diff()
     )
     # combine with main df
     target_date_diff["daysdelta"] = target_date_diff["date"] / np.timedelta64(1, "D")
-    target_select_clean = pd.concat([cp, target_date_diff["daysdelta"]], axis=1)
+    target_select_clean = pd.concat([tgt, target_date_diff["daysdelta"]], axis=1)
 
     # filter
     out = target_select_clean.loc[
@@ -256,7 +257,9 @@ def drop_days_delta(target_select, threshold=14):
     # clean output
     out = out.drop(["date", "daysdelta"], axis=1)
     report.report_change_in_nrow(
-        target_select, out, operation="Drop PHQ records which is <14 days from previous"
+        tgt,
+        out,
+        operation="Drop PHQ test results which are within 14 days from previous result",
     )
 
     return out
@@ -271,13 +274,115 @@ def generate_ts_y(
 
     ### Generate time series (many rows for each y label) and corresponding . The ID column in the time series dataframe
 
-    col_select = column_features + [column_index] + [column_id]
+    col_select = column_features + [column_index] + [column_id] + ["target"]
     input_df = df[col_select].copy()
 
     ts = input_df.reset_index(drop=True)
+    ts.drop("target", axis=1, inplace=True)
     y = input_df.groupby(column_id).tail(1).set_index(column_id)["target"]
 
     ts_ind = set(ts[column_id])
     y_ind = set(y.index)
     assert ts_ind == y_ind, "ts and y features don't match"
     return ts, y
+
+
+def merge_slp_phq(expanded, phqs_raw):
+
+    ### CLEAN phqs_raw to match Haotian's code
+    target = phqs_raw[["centre", "pid", "time", "phq"]].copy()
+    target.columns = ["centre", "id", "time_y", "phq"]
+
+    target["time_y"] = pd.to_datetime(target["time_y"])
+
+    # Clean target data
+    """target["test_date"] = target["time_y"].map(lambda x: x[:10])"""
+    #! replaced by:
+    target["test_date"] = target["time_y"].dt.date
+    target_new = target.loc[:, ["id", "test_date", "phq"]]
+
+    # Get observation start and end times
+    """
+    id_obs_start = data_tab.groupby('id')['date'].min()
+    id_obs_end = data_tab.groupby('id')['date'].max()
+    """
+
+    #! replaced by
+    expanded.columns = [
+        "id",
+        "date",
+        "start_time",
+        "AWAKE",
+        "DEEP",
+        "LIGHT",
+        "REM",
+        "total",
+    ]
+    id_obs_start = expanded.groupby("id")["date"].min()
+    id_obs_end = expanded.groupby("id")["date"].max()
+
+    # Adjust the time format
+    target_new["obs_start"] = pd.to_datetime(target_new.test_date) - pd.Timedelta(
+        days=15
+    )
+
+    target_new["obs_start"] = target_new["obs_start"].apply(
+        lambda x: x.strftime("%Y-%m-%d")
+    )
+
+    # Join the tables
+    target_new = target_new.merge(id_obs_start, on="id", how="left").merge(
+        id_obs_end, on="id", how="left"
+    )
+
+    # Filter the target data during the observation period
+    target_select = target_new.loc[
+        (
+            pd.to_datetime(target_new["test_date"])
+            >= pd.to_datetime(target_new["date_x"])
+        )
+        & (
+            pd.to_datetime(target_new["obs_start"])
+            <= pd.to_datetime(target_new["date_y"])
+        )
+    ]
+    # Drop extra columns
+    target_select = target_select.drop(["date_x", "date_y"], axis=1)
+
+    # Drop PHQs records within 14 days of the previous
+    target_select = drop_days_delta(target_select)
+
+    # Link target data and observation data
+    """data_merge = pd.merge(target_select, data_tab, how='outer', on=['id'])"""
+    #! replaced by
+    data_merge = pd.merge(target_select, expanded, how="outer", on=["id"])
+
+    """
+    data_merge_select = data_merge.loc[(pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)) & (pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date))]
+    """
+
+    #! replaced by (formatting)
+    mask1 = pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)
+    mask2 = pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date)
+    data_merge_select = data_merge.loc[mask1 & mask2]
+    report.report_change_in_nrow(data_merge, data_merge_select)
+
+    # Set new ID: old_ID + PHQ time
+    #! updated
+    data_merge_select["id_new"] = (
+        data_merge_select.id + "_" + data_merge_select.test_date.astype("string")
+    )
+
+    # Set new time: date + start_time
+    #! updated
+    data_merge_select["time"] = (
+        data_merge_select.date.astype("string")
+        + " "
+        + data_merge_select.start_time.astype("string")
+    )
+
+    data_merge_select.drop(
+        ["test_date", "obs_start", "start_time"], axis=1, inplace=True
+    )
+
+    return data_merge_select

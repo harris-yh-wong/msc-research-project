@@ -100,6 +100,11 @@ def time2datetime(t):
     return dt.datetime.combine(date, t)
 
 
+def time2seconds(t):
+    delta = time2datetime(t) - dt.datetime(1970, 1, 1)
+    return delta.total_seconds()
+
+
 def subset_timeseries_within_interval(timeseries, start, end):
     subset = (
         timeseries.set_index("t", inplace=False)

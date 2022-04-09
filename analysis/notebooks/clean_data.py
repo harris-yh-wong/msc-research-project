@@ -96,14 +96,29 @@ def explode2ts(df):
 
 
 def time2datetime(t):
+    """Convert time to a datetime object
+
+    Args:
+        t (dt.time): time
+
+    Returns:
+        dt.datetime: datetime object
+    """
     date = dt.date(1970, 1, 1)
     return dt.datetime.combine(date, t)
 
 
 def time2seconds(t):
+    """Convert time to seconds from midnight
+
+    Args:
+        t (dt.time): time
+
+    Returns:
+        int: seconds from midnight
+    """
     delta = time2datetime(t) - dt.datetime(1970, 1, 1)
     return delta.total_seconds()
-
 
 def subset_timeseries_within_interval(timeseries, start, end):
     subset = (

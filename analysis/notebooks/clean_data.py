@@ -123,7 +123,7 @@ def time2seconds(t):
 def subset_timeseries_within_interval(timeseries, start, end, inclusive='left'):
     subset = (
         timeseries.set_index("t", inplace=False)
-        .between_time(start, end, inclusive)
+        .between_time(start, end, inclusive=inclusive)
         .reset_index(inplace=False)
     )
     report.report_change_in_nrow(timeseries, subset)

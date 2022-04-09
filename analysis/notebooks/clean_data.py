@@ -120,10 +120,10 @@ def time2seconds(t):
     delta = time2datetime(t) - dt.datetime(1970, 1, 1)
     return delta.total_seconds()
 
-def subset_timeseries_within_interval(timeseries, start, end):
+def subset_timeseries_within_interval(timeseries, start, end, inclusive='left'):
     subset = (
         timeseries.set_index("t", inplace=False)
-        .between_time(start, end)
+        .between_time(start, end, inclusive)
         .reset_index(inplace=False)
     )
     report.report_change_in_nrow(timeseries, subset)
@@ -177,6 +177,7 @@ def bin_by_time(ts: pd.DataFrame, freq="H"):
 
     df = ts.copy()
 
+    ### binning
     stages = ["AWAKE", "LIGHT", "DEEP", "REM"]
     df["stages"] = pd.Categorical(df["stages"], categories=stages, ordered=False)
     df = pd.concat([df, pd.get_dummies(df["stages"])], axis=1)
@@ -185,6 +186,12 @@ def bin_by_time(ts: pd.DataFrame, freq="H"):
     binned = df.groupby(group_by)[stages].agg("sum")
     binned.reset_index(inplace=True)
 
+    ### annotation
+    binned['hour'] = binned['t'].dt.hour
+    binned['start_date'] = binned['t'].dt.date
+    binned.drop("t", axis=1, inplace=True)
+    
+    ### 
     binned["sum"] = binned[stages].sum(axis=1)
 
     report.report_change_in_nrow(ts, binned)

@@ -164,7 +164,6 @@ def bin_by_hour(ts: pd.DataFrame):
 
 from datetime import datetime
 
-
 def bin_by_time(ts: pd.DataFrame, freq="H"):
     """Bin time series by the time
 
@@ -186,7 +185,7 @@ def bin_by_time(ts: pd.DataFrame, freq="H"):
     binned = df.groupby(group_by)[stages].agg("sum")
     binned.reset_index(inplace=True)
 
-    binned["sum"] = binned.sum(axis=1)
+    binned["sum"] = binned[stages].sum(axis=1)
 
     report.report_change_in_nrow(ts, binned)
     return binned

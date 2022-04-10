@@ -4,7 +4,6 @@ import os
 import logging
 import time
 
-
 class Timer(object):
     """
     helper class to timing blocks of code
@@ -68,3 +67,13 @@ def cartesian_product(*arrays):
 # def dtale_url(obj, **kargs):
 #     d = dtale.show(obj, **kargs)
 #     return d._main_url
+
+
+def beep(freq=440, duration=1000):
+    """Play a sound when code finishes
+
+    Args:
+        freq (int, optional): Frequency in Hertz. Defaults to 440.
+        duration (int, optional):  Duration in milliseconds. Defaults to 1000.
+    """
+    winsound.Beep(freq, duration)

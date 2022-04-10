@@ -379,6 +379,8 @@ def merge_slp_phq(expanded, phqs_raw):
     target_select = drop_days_delta(target_select)
 
     # Link target data and observation data
+
+    ### outer join
     """data_merge = pd.merge(target_select, data_tab, how='outer', on=['id'])"""
     #! replaced by
     data_merge = pd.merge(target_select, expanded, how="outer", on=["id"])
@@ -387,11 +389,12 @@ def merge_slp_phq(expanded, phqs_raw):
     data_merge_select = data_merge.loc[(pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)) & (pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date))]
     """
 
+    ### drop irrelevant rows
     #! replaced by (formatting)
     mask1 = pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)
     mask2 = pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date)
     data_merge_select = data_merge.loc[mask1 & mask2]
-    report.report_change_in_nrow(data_merge, data_merge_select)
+    report.report_change_in_nrow(data_merge, data_merge_select, "Drop irrelevant rows from outer join")
 
     # Set new ID: old_ID + PHQ time
     #! updated

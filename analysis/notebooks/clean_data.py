@@ -120,7 +120,7 @@ def time2seconds(t):
     delta = time2datetime(t) - dt.datetime(1970, 1, 1)
     return delta.total_seconds()
 
-def subset_timeseries_within_interval(timeseries, start, end, inclusive='left'):
+def subset_timeseries_within_interval(timeseries, start, end, inclusive='both'):
     subset = (
         timeseries.set_index("t", inplace=False)
         .between_time(start, end, inclusive=inclusive)

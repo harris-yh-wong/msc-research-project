@@ -300,7 +300,7 @@ def generate_ts_y(
 
     ### Generate time series (many rows for each y label) and corresponding . The ID column in the time series dataframe
 
-    col_select = column_features + [column_index] + [column_id] + ["target"]
+    col_select = column_features + [column_index, column_id, "target"]
     input_df = df[col_select].copy()
 
     ts = input_df.reset_index(drop=True)
@@ -313,7 +313,7 @@ def generate_ts_y(
     return ts, y
 
 
-def merge_slp_phq(expanded, phqs_raw):
+def merge_slp_phq(expanded, phqs_raw, window=15):
 
     ### CLEAN phqs_raw to match Haotian's code
     target = phqs_raw[["centre", "pid", "time", "phq"]].copy()
@@ -349,7 +349,7 @@ def merge_slp_phq(expanded, phqs_raw):
 
     # Adjust the time format
     target_new["obs_start"] = pd.to_datetime(target_new.test_date) - pd.Timedelta(
-        days=15
+        days=window
     )
 
     target_new["obs_start"] = target_new["obs_start"].apply(

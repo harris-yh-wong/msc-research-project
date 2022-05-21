@@ -236,14 +236,16 @@ def plot_binned(df, max_plots=5):
     n_plots = len(primary_keys)
 
     if n_plots > max_plots:
-        print(f"TOO MANY PLOTS ({n_plots}). INCREASE MAX_PLOTS")
+        print(f"TOO MANY PLOTS ({n_plots}).\nOnly showing {max_plots} plots.\nIncrease max_plots")
         n_plots = max_plots
 
     for i in range(n_plots):
         key = primary_keys[i]
-        delta_t = df.loc[df["id_new"] == key]
+        delta_t = df.loc[df["id_new"] == key].reset_index(drop=True)
         delta_t[["AWAKE", "LIGHT", "DEEP", "REM"]].plot.line(subplots=True)
-        plt.title(str(delta_t["target"].unique()))
+        label = str(delta_t["target"].unique()[0])
+        nobs = delta_t['nights_recorded'].unique()[0]
+        plt.suptitle(f"{nobs}, {label}, {key}")
         plt.show()
 
     return None

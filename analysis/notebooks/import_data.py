@@ -28,3 +28,12 @@ def import_data(dir):
     metadata = pd.read_excel(metadata_path)
 
     return(phqs, slps, metadata)
+
+
+def read_target(path):
+    y = (
+        pd.read_feather(path)
+        .set_index('id_new', inplace=False)
+        .iloc[:, 0]
+    )
+    return y

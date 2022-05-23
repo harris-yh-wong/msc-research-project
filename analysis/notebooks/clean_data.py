@@ -110,6 +110,10 @@ def time2datetime(t):
 
 def time2seconds(t):
     """Convert time to seconds from midnight
+    Note:
+    alternatively,
+    > freq = '1s'
+    > ((time - time.dt.normalize()) / pd.Timedelta(freq)
 
     Args:
         t (dt.time): time
@@ -164,16 +168,23 @@ def bin_by_hour(ts: pd.DataFrame):
 
 from datetime import datetime
 
-def bin_by_time(ts: pd.DataFrame, freq="H"):
-    """Bin time series by the time
+def bin_by_time(ts: pd.DataFrame, freq=None):
+    """Bin time series by the time.
+    Numbers correspond to the count of signals (each 30s) within the bin. 
+    Expected total = bin size / time series epoch, 
+    e.g. expecteded total for hourly binning = 1h / 30s = 120
+    The 'sum' column may add up to less than the expected total due to missingness, but never above.
 
     Args:
         ts (pd.DataFrame): Time series dataframe
-        freq (str, optional): Frequency to bin by. Defaults to "H".
+        freq (str, optional): Bin size to bin by. Defaults to "H".
 
     Returns:
-        pd.DataFrame: Binned dataframe
+        pd.DataFrame: Binned dataframe.
     """
+    
+    if freq is None:
+        freq = 'H'
 
     df = ts.copy()
 
@@ -187,7 +198,15 @@ def bin_by_time(ts: pd.DataFrame, freq="H"):
     binned.reset_index(inplace=True)
 
     ### annotation
-    binned['hour'] = binned['t'].dt.hour
+    # Bin ID
+        # Here, 'hour' refers to the bin ID -- the Nth bin from midnight.
+        # e.g., if binning every 30 minutes, 8pm corresponds to the 20th bin from midnight.
+        #! refractor later, including all downstream routines
+    if freq == 'H':
+        binned['hour'] = binned['t'].dt.hour
+    else:
+        binned['hour'] = ((binned['t'] - binned['t'].dt.normalize()) / pd.Timedelta(freq)).astype(int)
+
     binned['start_date'] = binned['t'].dt.date
     binned.drop("t", axis=1, inplace=True)
     
@@ -203,7 +222,7 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
 
     Args:
         df (pd.DataFrame): hourly binned dataframe
-        by_columns (list): by what columns?
+        by_columns (list): By what columns to bin. Defaults to 'pid' and 'start_date'.
         hours (list): If None, Defaults to 8pm-10am i.e. [20,21,22,23,0,1,2,3,4,5,6,7,8,9,10].
 
     Returns:
@@ -229,23 +248,27 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
     return expanded
 
 
-def normalize_binned(df: pd.DataFrame, over=120):
+def normalize_binned(df: pd.DataFrame, over=None, freq='H', epoch_length='30s'):
     """Normalize binned dataframe by 120
 
     Args:
         df (pd.DataFrame): binned dataframe
-        over (int): normalize over what? Defaults to 120 (number of 30-second intervals in an hour)
+        over (int): [Deprecated] normalize over what? Defaults to 120 (number of 30-second intervals in an hour)
+        freq (str): Bin size
 
     Returns:
         pd.DataFrame: Normalized dataframe
     """
+
+    epochs_per_bin = pd.Timedelta(freq).total_seconds() / pd.Timedelta(epoch_length).total_seconds() 
+
     binned = df.copy()
-    binned["AWAKE"] = binned["AWAKE"] / over
-    binned["LIGHT"] = binned["LIGHT"] / over
-    binned["DEEP"] = binned["DEEP"] / over
-    binned["REM"] = binned["REM"] / over
+    binned["AWAKE"] = binned["AWAKE"] / epochs_per_bin
+    binned["LIGHT"] = binned["LIGHT"] / epochs_per_bin
+    binned["DEEP"] = binned["DEEP"] / epochs_per_bin
+    binned["REM"] = binned["REM"] / epochs_per_bin
     if "sum" in binned.columns:
-        binned["sum"] = binned["sum"] / over
+        binned["sum"] = binned["sum"] / epochs_per_bin
 
     return binned
 

@@ -75,3 +75,14 @@ def beeps():
     winsound.Beep(660, 200)
     winsound.Beep(880, 200)
     
+
+def generate_parse_config_script(config, config_name='config'):
+    """Generate the script to parse a config dictionary (e.g. parsed from JSON) to global variables
+
+    Args:
+        config (dict): Config dictionary parsed from e.g. JSON
+        config_name (str, optional): name of the config dictionary. Defaults to 'config'.
+    """
+    for key in config.keys():
+        print(f"{key} = {config_name}['{key}']")
+        

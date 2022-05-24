@@ -39,7 +39,7 @@ def report_preprocessed(df2):
         lambda x: "{:.2%}".format(x)
     )
 
-    print(f"{df2.shape=}")
+    print(f"df shape: {df2.shape}")
     print(f"Number of subjects by target: {subjects_by_target}")
     print(f"Proportion of subjects by target: {subjects_by_target_pc}")
     print(f"Hours by target: {hours_by_target}")

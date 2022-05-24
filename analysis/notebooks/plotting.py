@@ -5,6 +5,7 @@ import pandas as pd
 from mappings import *
 from helper import *
 import report
+import feat_engineering
 
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
@@ -326,7 +327,7 @@ def plot_relevant_features(relevance_table: pd.DataFrame, n_features=10) -> None
     relevance_table['stage'] = relevance_table['feature'].str[:5]
     relevance_table['-logp'] = np.log10(relevance_table['p_value'])*-1
 
-    show_features = get_relevant_features(relevance_table)[0:n_features]
+    show_features = feat_engineering.get_relevant_features(relevance_table)[0:n_features]
     relevance_table_subset = relevance_table.loc[relevance_table['feature'].isin(show_features), ]
 
     sns.set(rc={'figure.figsize':(12,n_features/2)})

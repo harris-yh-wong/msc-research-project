@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.patches
 import datetime as dt
+import seaborn as sns
 
 
 def subset_intervals(

@@ -1,6 +1,6 @@
 import seaborn as sns
 import pandas as pd
-
+import numpy as np
 
 def get_relevant_features(relevance_table: pd.DataFrame) -> list:
     """Get a list of relevant features from relevance table from tsfresh

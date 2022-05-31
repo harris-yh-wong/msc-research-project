@@ -63,9 +63,10 @@ def plot_gannt(plotdf, metadata, c_dict=None):
     if not c_dict:
         c_dict = {
             "AWAKE": "red",
-            "DEEP": "steelblue",
-            "LIGHT": "lightblue",
             "REM": "gold",
+            "LIGHT": "lightblue",
+            "DEEP": "steelblue",
+            "UNKNOWN": "gray"
         }
 
     # clean data

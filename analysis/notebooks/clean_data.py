@@ -459,3 +459,31 @@ def merge_slp_phq(expanded, phqs_raw, window=15):
     )
 
     return data_merge_select
+
+
+def add_night_date(ts_df: pd.DataFrame, sleep_hour_end: str) -> pd.DataFrame:
+    """Add a corresponding `night_date`.
+    If not before midnight, night_date is the previous date.
+    Otherwise, it is the same date
+
+    Args:
+        ts_df (pd.DataFrame): Time series dataframe.
+        sleep_hour_end (str): When does the sleeping hours end? In string format e.g. '10:00'.
+
+    Returns:
+        pd.DataFrame: Dataframe with added `night_date` column
+    """
+    ts = ts_df.copy()
+
+    # length of morning (as a cutoff)
+    #! optimize later; faster method should be using df['t'].dt.time
+    morning_length = pd.to_datetime(sleep_hour_end) - pd.to_datetime("00:00")
+    before_midnight_flag = (ts["t"] - ts["t"].dt.normalize()) > morning_length
+
+    # night_date = the same date
+    ts["night_date"] = ts["t"].dt.date
+    # replace if flagged
+    ts.loc[~before_midnight_flag, "night_date"] = ts["night_date"] - pd.Timedelta(
+        days=1
+    )
+    return ts

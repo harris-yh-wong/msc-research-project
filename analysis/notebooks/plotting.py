@@ -58,7 +58,90 @@ def plot_gannts(df, metadata, max_plots=5):
     return None
 
 
-def plot_gannt(plotdf, metadata, c_dict=None):
+def plot_dedupped_intervals(
+    plotdf: pd.DataFrame,
+    metadata: pd.DataFrame,
+    sleep_hour_start: str,
+    sleep_hour_end: str,
+    c_dict=None,
+    max_nights=30,
+):
+    """Plot dedupped intervals into a coloured stacked bars
+
+    Args:
+        plotdf (pd.DataFrame): Interval dataframe for plotting. Should be dedupped.
+        metadata (pd.DataFrame): Metadata from `import_data.import_data()`
+        sleep_hour_start (str): When does the 'sleep time' start? e.g. '20:00'
+        sleep_hour_end (str): When does the 'sleep time' end? e.g. '10:00'
+        c_dict (dict, optional): Color palette dictionary. Defaults to None, using a prespecified colour palette
+    """
+
+    # ensure all columns are there
+    required_cols = [
+        "pid",
+        "night_date",
+        "duration",
+        "start_date",
+        "start",
+        "end",
+        "stages",
+    ]
+    assert set(required_cols).issubset(
+        set(plotdf.columns)
+    ), "Required column(s) missing."
+    plotdf = plotdf[required_cols]
+
+    # ensure all observations come from the same patient
+    assert plotdf["pid"].nunique() == 1, "PIDs not unique in the input dataframe."
+
+    # number of nights / fig size
+    n_nights = plotdf["night_date"].nunique()
+    assert n_nights <= max_nights, "Too many nights. Increase `max_nights`."
+
+    # default hours
+    c_dict = {
+        "AWAKE": "red",
+        "REM": "gold",
+        "LIGHT": "lightblue",
+        "DEEP": "steelblue",
+        "UNKNOWN": "gray",
+    }
+    colors = [c_dict[stage] for stage in plotdf["stages"]]
+
+    # axis limits,
+    # required later
+    start = pd.to_datetime(sleep_hour_start)
+    start_hours = (start - start.normalize()).total_seconds() / 3600
+    end = pd.to_datetime(sleep_hour_end)
+    end_hours = (end - end.normalize()).total_seconds() / 3600
+
+    # convert to number of hours
+    widths = plotdf["duration"] / 3600
+    lefts = (plotdf["start"] - plotdf["start"].dt.normalize()).dt.total_seconds() / 3600
+    # put everything after midnight
+    lefts = [left + 24 if left <= end_hours else left for left in lefts]
+
+    # plot
+    fig, ax = plt.subplots(1, figsize=(16, n_nights))
+    ax.barh(
+        y=plotdf["start_date"].astype(str),
+        # width = plotdf['duration'].apply(lambda sec: pd.Timedelta(seconds=sec)),
+        width=widths,
+        left=lefts,
+        color=colors,
+    )
+
+    # axis
+    ax.set_xlim(start_hours, 24 + end_hours)
+    ax.invert_yaxis()
+
+    # title
+    title = plotdf["pid"][0]
+    ax.title.set_text(title)
+    return fig
+
+
+def plot_gannt(plotdf, metadata, c_dict=None, overlap=True):
     # default colors
     if not c_dict:
         c_dict = {
@@ -66,7 +149,7 @@ def plot_gannt(plotdf, metadata, c_dict=None):
             "REM": "gold",
             "LIGHT": "lightblue",
             "DEEP": "steelblue",
-            "UNKNOWN": "gray"
+            "UNKNOWN": "gray",
         }
 
     # clean data
@@ -77,16 +160,28 @@ def plot_gannt(plotdf, metadata, c_dict=None):
     fig, ax = plt.subplots(1, figsize=(16, 10))
 
     # plot
-    for i in range(plotdf.shape[0]):
-        row = plotdf.reset_index(drop=True).iloc[i, :]
-        color = c_dict[row["stages"]]
-        ax.barh(
-            y=row["ObsIndex"],
-            width=row["end"] - row["start"],
-            # width=row['duration']/(60*60*24),
-            left=row["start"],
-            color=color,
-        )
+    colors = [c_dict[stage] for stage in plotdf["stages"]]
+
+    ax.barh(
+        y=plotdf["ObsIndex"],
+        width=plotdf["end"] - plotdf["start"],
+        left=plotdf["start"],
+        color=colors,
+    )
+
+    # print(plotdf.shape[0])
+    # for i in range(plotdf.shape[0]):
+    #     row = plotdf.reset_index(drop=True).iloc[i, :]
+    #     color = c_dict[row["stages"]]
+    #     y = 1
+    #     if overlap:
+    #         y = row["ObsIndex"]
+    #     ax.barh(
+    #         y=y,
+    #         width=row["end"] - row["start"],
+    #         left=row["start"],
+    #         color=color,
+    #     )
 
     # axis
     ax.set_xlim(plotdf["start"].min(), plotdf["end"].max())
@@ -94,7 +189,7 @@ def plot_gannt(plotdf, metadata, c_dict=None):
     plt.gca().invert_yaxis()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
-    ax.tick_params(axis='x', labelrotation = 45)
+    ax.tick_params(axis="x", labelrotation=45)
 
     # legends
     patch_list = [
@@ -110,48 +205,6 @@ def plot_gannt(plotdf, metadata, c_dict=None):
         IDnum = metadata.loc[metadata["subject_id"] == pid, "ID"].iloc[0].astype(str)
         title = title + "  (ID: " + IDnum + " / " + pid + ")"
     ax.title.set_text(title)
-
-    return fig
-
-
-def plot_stages(plotdf, metadata, c_dict=None):
-    # default colors
-    if not c_dict:
-        c_dict = {"AWAKE": "red", "DEEP": "green", "LIGHT": "blue", "REM": "purple"}
-
-    # setup
-    fig, ax = plt.subplots(1, figsize=(16, 10))
-
-    # plot
-    color = c_dict[plotdf["stages"]]
-    ax.barh(
-        y=plotdf["start_date"],
-        width=plotdf["end"] - plotdf["start"],
-        # width=row['duration']/(60*60*24),
-        left=plotdf["start"]
-        # color=color
-    )
-
-    # # axis
-    # ax.set_xlim(plotdf['start'].min(), plotdf['end'].max())
-    # ax.set_ylim(-1, plotdf['start_date'].max()+1)
-    # plt.gca().invert_yaxis()
-    # ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    # ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
-
-    # # legends
-    # patch_list = [matplotlib.patches.Patch(
-    #     color=color, label=label) for label, color in c_dict.items()]
-    # ax.legend(handles=patch_list)
-
-    # # title
-    # title = plotdf['start_date'].iloc[0].strftime('%Y.%m.%d')
-    # if metadata is not None:
-    #     pid = plotdf['pid'].iloc[0]
-    #     IDnum = metadata.loc[metadata['subject_id']
-    #                          == pid, 'ID'].iloc[0].astype(str)
-    #     title = title + '  (ID: ' + IDnum + ' / ' + pid + ')'
-    # ax.title.set_text(title)
 
     return fig
 
@@ -240,7 +293,9 @@ def plot_binned(df, max_plots=5):
     n_plots = len(primary_keys)
 
     if n_plots > max_plots:
-        print(f"TOO MANY PLOTS ({n_plots}).\nOnly showing {max_plots} plots.\nIncrease max_plots")
+        print(
+            f"TOO MANY PLOTS ({n_plots}).\nOnly showing {max_plots} plots.\nIncrease max_plots"
+        )
         n_plots = max_plots
 
     for i in range(n_plots):
@@ -248,7 +303,7 @@ def plot_binned(df, max_plots=5):
         delta_t = df.loc[df["id_new"] == key].reset_index(drop=True)
         delta_t[["AWAKE", "LIGHT", "DEEP", "REM"]].plot.line(subplots=True)
         label = str(delta_t["target"].unique()[0])
-        nobs = delta_t['nights_recorded'].unique()[0]
+        nobs = delta_t["nights_recorded"].unique()[0]
         plt.suptitle(f"{nobs}, {label}, {key}")
         plt.show()
 
@@ -279,7 +334,7 @@ def plot_search_results(grid):
     Params:
         grid: A trained GridSearchCV object.
     """
-    #todo  Compatibility with 1 parameter
+    # todo  Compatibility with 1 parameter
 
     ## Results from grid search
     results = grid.cv_results_
@@ -327,12 +382,15 @@ def plot_relevant_features(relevance_table: pd.DataFrame, n_features=10) -> None
         n_features (int, optional): Number of feature sto plot. Defaults to 10.
     """
     n_features = 50
-    relevance_table['stage'] = relevance_table['feature'].str[:5]
-    relevance_table['-logp'] = np.log10(relevance_table['p_value'])*-1
+    relevance_table["stage"] = relevance_table["feature"].str[:5]
+    relevance_table["-logp"] = np.log10(relevance_table["p_value"]) * -1
 
-    show_features = feat_engineering.get_relevant_features(relevance_table)[0:n_features]
-    relevance_table_subset = relevance_table.loc[relevance_table['feature'].isin(show_features), ]
+    show_features = feat_engineering.get_relevant_features(relevance_table)[
+        0:n_features
+    ]
+    relevance_table_subset = relevance_table.loc[
+        relevance_table["feature"].isin(show_features),
+    ]
 
-    sns.set(rc={'figure.figsize':(12,n_features/2)})
-    sns.barplot(y = 'feature', x = '-logp', hue='stage', data=relevance_table_subset);
-
+    sns.set(rc={"figure.figsize": (12, n_features / 2)})
+    sns.barplot(y="feature", x="-logp", hue="stage", data=relevance_table_subset)

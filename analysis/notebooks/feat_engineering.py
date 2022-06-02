@@ -85,7 +85,31 @@ def drop_awakenings_outside_delta_sleep(
 
 
 def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame:
+    """Generate domain-knowledge-driven summary statistics per subject per night
+    - note the difference between defined 'sleep times' and delta_t
 
+    | Column                            | Description                                                                                                          |
+    |-----------------------------------|----------------------------------------------------------------------------------------------------------------------|
+    | `first`                           | the first non-AWAKE timestamp within the defined 'sleep times'
+    | `last`                            | the last non-AWAKE timestamp within the defined 'sleep times'
+    | `delta_sleep`                     | `last` minus `first` + 1 epoch
+    | `AWAKE`/`DEEP`/`LIGHT`/`REM`      | number of **recorded** hours of AWAKE/DEEP/LIGHT/REM within the defined 'sleep times'
+    | `total`                           | total number of **recorded** hours within the defined 'sleep times' / also known as "time in bed" in YueZhou's paper
+    | `total_sleep_time`                | total number of **recorded** non-awake hours within the defined 'sleep times'
+    | `missing`                         | `delta_sleep` minus `total_nonawake` ?????
+    | `offset_time_hour`                | `last` in terms of #hours from midnight
+    | `TSTover10`                       | `total_sleep_time` over 10 hours
+    | `insomnia`                        | Middle insomnia, defined as `total_sleep_time` < 6h AND >= 1 prolonged awakening of >=30 minutes
+    | `awake_..._...`                   | Number of awakenings: >=30m/>5m; `excl`=excluding awakenings outsdie of `first` and `last`
+
+
+    Args:
+        ts (pd.DataFrame): Time series dataframe
+        epoch_length (int, optional): Epoch length in seconds. Defaults to 30.
+
+    Returns:
+        pd.DataFrame: Summary statistics dataframe
+    """
     ### Basic aggregates per night
     stats_per_night = (
         ts.loc[

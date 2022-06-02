@@ -76,12 +76,12 @@ def plot_dedupped_intervals(
         c_dict (dict, optional): Color palette dictionary. Defaults to None, using a prespecified colour palette
     """
 
+    ### CHECKS
     # ensure all columns are there
     required_cols = [
         "pid",
         "night_date",
         "duration",
-        "start_date",
         "start",
         "end",
         "stages",
@@ -93,6 +93,12 @@ def plot_dedupped_intervals(
 
     # ensure all observations come from the same patient
     assert plotdf["pid"].nunique() == 1, "PIDs not unique in the input dataframe."
+
+    # ensure duration is in number of seconds
+    assert plotdf["duration"].dtype in [
+        "int32",
+        "float64",
+    ], "Duration should be in number of seconds."
 
     # number of nights / fig size
     n_nights = plotdf["night_date"].nunique()
@@ -124,7 +130,7 @@ def plot_dedupped_intervals(
     # plot
     fig, ax = plt.subplots(1, figsize=(16, n_nights))
     ax.barh(
-        y=plotdf["start_date"].astype(str),
+        y=plotdf["night_date"].astype(str),
         # width = plotdf['duration'].apply(lambda sec: pd.Timedelta(seconds=sec)),
         width=widths,
         left=lefts,
@@ -136,7 +142,7 @@ def plot_dedupped_intervals(
     ax.invert_yaxis()
 
     # title
-    title = plotdf["pid"][0]
+    title = plotdf.iloc[0]["pid"]
     ax.title.set_text(title)
     return fig
 

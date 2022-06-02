@@ -85,4 +85,16 @@ def generate_parse_config_script(config, config_name='config'):
     """
     for key in config.keys():
         print(f"{key} = {config_name}['{key}']")
-        
+
+
+def time2second(x: pd.Series) -> pd.Series:
+    """Convert datetime series time component to number of seconds
+
+    Args:
+        x (pd.Series): Pandas series of datetime objects
+
+    Returns:
+        pd.Series: Pandas series of the time component in seconds
+    """
+    return ((x.dt.hour*3600+x.dt.minute*60+x.dt.second).astype(int))
+    

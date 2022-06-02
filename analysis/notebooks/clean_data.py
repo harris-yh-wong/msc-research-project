@@ -7,6 +7,8 @@ import datetime as dt
 from helper import *
 import report
 from deprecated import deprecated
+from datetime import datetime
+
 
 # from pandarallel import pandarallel  # parallel processing
 
@@ -84,14 +86,22 @@ def _explode2ts(
     return timeseries
 
 
-def explode2ts(df):
+def explode2ts(df) -> pd.DataFrame:
+    """Explode a dataframe in interval format to time series format
+
+    Args:
+        df (pd.DataFrame): Dataframe in interval format with 'start' and 'end' columns
+
+    Returns:
+        pd.DataFrame: Dataframe in time series format with epoch timestamp
+    """
     # the start_date is kept because overlap-removal step requires this column for deciding which label to keep/discard
     data = (
-        (row.pid, t, row.start_date, row.stages)
+        (row.pid, t, row.start, row.stages)
         for row in df.itertuples()
         for t in pd.date_range(row.start, row.end, freq="30s")
     )
-    ts = pd.DataFrame(data=data, columns=["pid", "t", "start_date", "stages"])
+    ts = pd.DataFrame(data=data, columns=["pid", "t", "interval_start", "stages"])
     return ts
 
 
@@ -124,7 +134,8 @@ def time2seconds(t):
     delta = time2datetime(t) - dt.datetime(1970, 1, 1)
     return delta.total_seconds()
 
-def subset_timeseries_within_interval(timeseries, start, end, inclusive='both'):
+
+def subset_timeseries_within_interval(timeseries, start, end, inclusive='both') -> pd.DataFrame:
     subset = (
         timeseries.set_index("t", inplace=False)
         .between_time(start, end, inclusive=inclusive)
@@ -134,7 +145,7 @@ def subset_timeseries_within_interval(timeseries, start, end, inclusive='both'):
     return subset
 
 
-def dedup_timeseries(ts: pd.DataFrame):
+def dedup_timeseries(ts: pd.DataFrame) -> pd.DataFrame:
     """Deduplicate timeseries. Logic: grouped by subject id and timestamp, sort by interval start datetime, select last record
 
     Args:
@@ -143,7 +154,11 @@ def dedup_timeseries(ts: pd.DataFrame):
     Returns:
         pd.DataFrame: time series dataframe, deduplicated
     """
-    dedupped = ts.sort_values(["pid", "t", "start_date"]).groupby(["pid", "t"]).tail(1)
+    dedupped = ( ts
+        .sort_values(["pid", "t", "interval_start"], inplace=False)
+        .groupby(["pid", "t"])
+        .tail(1)
+    )
     report.report_change_in_nrow(ts, dedupped)
     return dedupped
 
@@ -166,9 +181,7 @@ def bin_by_hour(ts: pd.DataFrame):
     return binned
 
 
-from datetime import datetime
-
-def bin_by_time(ts: pd.DataFrame, freq=None):
+def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
     """Bin time series by the time.
     Numbers correspond to the count of signals (each 30s) within the bin. 
     Expected total = bin size / time series epoch, 
@@ -438,3 +451,5 @@ def merge_slp_phq(expanded, phqs_raw, window=15):
     )
 
     return data_merge_select
+
+

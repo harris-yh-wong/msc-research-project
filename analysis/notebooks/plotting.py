@@ -94,6 +94,7 @@ def plot_gannt(plotdf, metadata, c_dict=None):
     plt.gca().invert_yaxis()
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
     ax.xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
+    ax.tick_params(axis='x', labelrotation = 45)
 
     # legends
     patch_list = [

@@ -135,7 +135,9 @@ def time2seconds(t):
     return delta.total_seconds()
 
 
-def subset_timeseries_within_interval(timeseries, start, end, inclusive='both') -> pd.DataFrame:
+def subset_timeseries_within_interval(
+    timeseries, start, end, inclusive="both"
+) -> pd.DataFrame:
     subset = (
         timeseries.set_index("t", inplace=False)
         .between_time(start, end, inclusive=inclusive)
@@ -154,8 +156,8 @@ def dedup_timeseries(ts: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: time series dataframe, deduplicated
     """
-    dedupped = ( ts
-        .sort_values(["pid", "t", "interval_start"], inplace=False)
+    dedupped = (
+        ts.sort_values(["pid", "t", "interval_start"], inplace=False)
         .groupby(["pid", "t"])
         .tail(1)
     )
@@ -183,8 +185,8 @@ def bin_by_hour(ts: pd.DataFrame):
 
 def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
     """Bin time series by the time.
-    Numbers correspond to the count of signals (each 30s) within the bin. 
-    Expected total = bin size / time series epoch, 
+    Numbers correspond to the count of signals (each 30s) within the bin.
+    Expected total = bin size / time series epoch,
     e.g. expecteded total for hourly binning = 1h / 30s = 120
     The 'sum' column may add up to less than the expected total due to missingness, but never above.
 
@@ -195,9 +197,9 @@ def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Binned dataframe.
     """
-    
+
     if freq is None:
-        freq = 'H'
+        freq = "H"
 
     df = ts.copy()
 
@@ -212,18 +214,20 @@ def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
 
     ### annotation
     # Bin ID
-        # Here, 'hour' refers to the bin ID -- the Nth bin from midnight.
-        # e.g., if binning every 30 minutes, 8pm corresponds to the 20th bin from midnight.
-        #! refractor later, including all downstream routines
-    if freq == 'H':
-        binned['hour'] = binned['t'].dt.hour
+    # Here, 'hour' refers to the bin ID -- the Nth bin from midnight.
+    # e.g., if binning every 30 minutes, 8pm corresponds to the 20th bin from midnight.
+    #! refractor later, including all downstream routines
+    if freq == "H":
+        binned["hour"] = binned["t"].dt.hour
     else:
-        binned['hour'] = ((binned['t'] - binned['t'].dt.normalize()) / pd.Timedelta(freq)).astype(int)
+        binned["hour"] = (
+            (binned["t"] - binned["t"].dt.normalize()) / pd.Timedelta(freq)
+        ).astype(int)
 
-    binned['start_date'] = binned['t'].dt.date
+    binned["start_date"] = binned["t"].dt.date
     binned.drop("t", axis=1, inplace=True)
-    
-    ### 
+
+    ###
     binned["sum"] = binned[stages].sum(axis=1)
 
     report.report_change_in_nrow(ts, binned)
@@ -261,7 +265,7 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
     return expanded
 
 
-def normalize_binned(df: pd.DataFrame, over=None, freq='H', epoch_length='30s'):
+def normalize_binned(df: pd.DataFrame, over=None, freq="H", epoch_length="30s"):
     """Normalize binned dataframe by 120
 
     Args:
@@ -273,7 +277,9 @@ def normalize_binned(df: pd.DataFrame, over=None, freq='H', epoch_length='30s'):
         pd.DataFrame: Normalized dataframe
     """
 
-    epochs_per_bin = pd.Timedelta(freq).total_seconds() / pd.Timedelta(epoch_length).total_seconds() 
+    epochs_per_bin = (
+        pd.Timedelta(freq).total_seconds() / pd.Timedelta(epoch_length).total_seconds()
+    )
 
     binned = df.copy()
     binned["AWAKE"] = binned["AWAKE"] / epochs_per_bin
@@ -430,7 +436,9 @@ def merge_slp_phq(expanded, phqs_raw, window=15):
     mask1 = pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)
     mask2 = pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date)
     data_merge_select = data_merge.loc[mask1 & mask2]
-    report.report_change_in_nrow(data_merge, data_merge_select, "Drop irrelevant rows from outer join")
+    report.report_change_in_nrow(
+        data_merge, data_merge_select, "Drop irrelevant rows from outer join"
+    )
 
     # Set new ID: old_ID + PHQ time
     #! updated
@@ -451,5 +459,3 @@ def merge_slp_phq(expanded, phqs_raw, window=15):
     )
 
     return data_merge_select
-
-

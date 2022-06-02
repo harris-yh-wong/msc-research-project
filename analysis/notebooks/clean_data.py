@@ -487,3 +487,37 @@ def add_night_date(ts_df: pd.DataFrame, sleep_hour_end: str) -> pd.DataFrame:
         days=1
     )
     return ts
+
+
+def replace_slp_stage(
+    ts_df: pd.DataFrame, from_stage="UNKNOWN", to_stage="AWAKE", epoch_length=30
+) -> pd.DataFrame:
+    """Replace UNKNOWN in sleep stages.
+
+    Args:
+        ts (pd.DataFrame): Time series dataframe
+        replacement (str, optional): Replacement string. Defaults to 'AWAKE'.
+        epoch_length (int, optional): Length of a epoch in seconds. Defaults to 30.
+
+    Returns:
+        pd.DataFrame: Time series dataframe with UNKNOWN stage replaced
+    """
+    ts = ts_df.copy()
+
+    ### diagnostics
+    ts_unknown = ts.loc[ts["stages"] == from_stage]
+    # print a dataframe of which PIDs and nights with unknowns
+    pid_nights = (
+        ts_unknown.groupby(["pid"])["t"].agg("count") * epoch_length / 3600
+    )  # how many hours?
+    pid_nights.rename("hours_of_unknown", inplace=True)
+    # summary statistics
+    unknown_percent = ts_unknown.shape[0] / ts.shape[0] * 100
+    unknown_total_time = pid_nights.sum()
+    print(f"Unknown percent: {unknown_percent:.3f}%")
+    print(f"Unknown time:    {unknown_total_time:.3f} hours")
+    print(pid_nights)
+
+    ### replacement
+    ts.loc[ts["stages"] == from_stage, "stages"] = to_stage
+    return ts

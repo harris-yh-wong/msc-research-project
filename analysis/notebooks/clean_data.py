@@ -9,6 +9,7 @@ import report
 from deprecated import deprecated
 from datetime import datetime
 
+from feat_engineering import summarise_stage
 
 # from pandarallel import pandarallel  # parallel processing
 
@@ -525,3 +526,34 @@ def replace_slp_stage(
     ### replacement
     ts.loc[ts["stages"] == from_stage, "stages"] = to_stage
     return ts
+
+
+def ts2intervals(ts_df: pd.DataFrame) -> pd.DataFrame:
+    """Convert time series dataframe to intervals dataframe
+
+    Args:
+        ts_df (pd.DataFrame): _description_
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+
+    def mysummarise(tsdf, stage):
+        return (
+            summarise_stage(tsdf, stage=stage)
+            .droplevel("stages", axis="index")
+            .reset_index()
+        )
+
+    ts_sorted = ts_df.sort_values(["pid", "t"])
+    stages = ["AWAKE", "DEEP", "LIGHT", "REM"]
+    intervals_by_stage = [mysummarise(ts_sorted, stage=s) for s in stages]
+    intervals_by_stage = (
+        pd.concat(intervals_by_stage, keys=stages, names=["stages", "index"])
+        .reset_index("stages")
+        .rename(columns={"first": "start", "last": "end"})
+    )
+    intervals_by_stage["duration"] = (
+        intervals_by_stage["duration"] / pd.Timedelta(seconds=1)
+    ).astype(int)
+    return intervals_by_stage

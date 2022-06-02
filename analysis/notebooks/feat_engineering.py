@@ -67,8 +67,8 @@ def drop_awakenings_outside_delta_sleep(
     Returns:
         pd.DataFrame: _description_
     """
-    assert awakenings.index.equals(stats_per_night.index)
-
+    # the indices may not be equal, there may be nights with entirely empty nights
+    # use left join instead
     awakenings_joined = awakenings.join(
         stats_per_night[["first", "last"]], how="left", lsuffix="", rsuffix="_sleep"
     )
@@ -101,7 +101,8 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
     hours_per_stage_per_night["total"] = hours_per_stage_per_night.sum(axis=1)
 
     ### Combine them
-    assert stats_per_night.index.equals(hours_per_stage_per_night.index)
+    # the indices may not be equal, there may be nights with entirely empty nights
+    # use left join instead
     combined = stats_per_night.join(hours_per_stage_per_night, how="left")
 
     ### Other stats
@@ -111,7 +112,7 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
     combined["awake_pct"] = combined["AWAKE"] / combined["total"] * 100
 
     ### summarise awakenings
-    awakenings = summarise_stage(ts, epoch_length, stage="AWAKE")
+    awakenings = summarise_stage(ts, stage="AWAKE", epoch_length=epoch_length)
     ### drop awakenings that are outside the delta sleep
     awakenings_excl = drop_awakenings_outside_delta_sleep(awakenings, combined)
 

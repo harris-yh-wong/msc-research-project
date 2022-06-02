@@ -40,24 +40,27 @@ def summarise_stage(ts_df: pd.DataFrame, stage: str, epoch_length=30) -> pd.Data
 
     # AWAKE stages are grouped into 'consecutive' groups
     # then take the first and last timestamp
-    ts_awake = ts_df.loc[ts_df["stages"] == stage]
-    ts_awake_grouped = ts_awake.groupby(
+    ts_stage = ts_df.loc[ts_df["stages"] == stage]
+    ts_stage_grouped = ts_stage.groupby(
         ["pid", "night_date", (ts_df["stages"] != stage).cumsum()]
     )
-    awakenings = ts_awake_grouped["t"].agg(["first", "last"])
-    awakenings["duration"] = (
-        awakenings["last"] - awakenings["first"] + pd.Timedelta(seconds=epoch_length)
+    intervals_stage = ts_stage_grouped["t"].agg(["first", "last"])
+    intervals_stage["duration"] = (
+        intervals_stage["last"]
+        - intervals_stage["first"]
+        + pd.Timedelta(seconds=epoch_length)
     )
-    return awakenings
+    return intervals_stage
 
 
 def drop_awakenings_outside_delta_sleep(
     awakenings: pd.DataFrame, stats_per_night: pd.DataFrame
 ) -> pd.DataFrame:
-    """Drop the awakenings which appear before or after the
+    """Helper function for `summarise_stats_per_night`
+    Drop the awakenings which appear before or after the defined sleep times
     i.e. Keep only awakenings starting after `first` non-AWAKE timestamp and
     ending before `last` non-AWAKE timestamp
-    best case scenario: there are no awakenings excluded
+    Best case scenario: there are no awakenings excluded
     Worst case scenario: there are 2 awakenings excluded
 
     Args:

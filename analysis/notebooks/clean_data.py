@@ -14,7 +14,7 @@ from feat_engineering import summarise_stage
 # from pandarallel import pandarallel  # parallel processing
 
 
-def clean_all_phq(df):
+def clean_all_phq(df: pd.DataFrame) -> pd.DataFrame:
     df2 = df.copy()
     df2.columns = ["pid", "timestamp", "phq", "sleep"]
     df2["timestamp"] = pd.to_datetime(df2["timestamp"])
@@ -87,11 +87,11 @@ def _explode2ts(
     return timeseries
 
 
-def explode2ts(df) -> pd.DataFrame:
+def explode2ts(ts_df: pd.DataFrame) -> pd.DataFrame:
     """Explode a dataframe in interval format to time series format
 
     Args:
-        df (pd.DataFrame): Dataframe in interval format with 'start' and 'end' columns
+        ts_df (pd.DataFrame): Dataframe in interval format with 'start' and 'end' columns
 
     Returns:
         pd.DataFrame: Dataframe in time series format with epoch timestamp
@@ -99,14 +99,14 @@ def explode2ts(df) -> pd.DataFrame:
     # the start_date is kept because overlap-removal step requires this column for deciding which label to keep/discard
     data = (
         (row.pid, t, row.start, row.stages)
-        for row in df.itertuples()
+        for row in ts_df.itertuples()
         for t in pd.date_range(row.start, row.end, freq="30s")
     )
     ts = pd.DataFrame(data=data, columns=["pid", "t", "interval_start", "stages"])
     return ts
 
 
-def time2datetime(t):
+def time2datetime(t: dt.time) -> dt.datetime:
     """Convert time to a datetime object
 
     Args:
@@ -119,7 +119,7 @@ def time2datetime(t):
     return dt.datetime.combine(date, t)
 
 
-def time2seconds(t):
+def time2seconds(t: dt.time) -> float:
     """Convert time to seconds from midnight
     Note:
     alternatively,
@@ -137,7 +137,7 @@ def time2seconds(t):
 
 
 def subset_timeseries_within_interval(
-    timeseries, start, end, inclusive="both"
+    timeseries: pd.DataFrame, start: dt.date, end: dt.date, inclusive="both"
 ) -> pd.DataFrame:
     subset = (
         timeseries.set_index("t", inplace=False)
@@ -167,7 +167,7 @@ def dedup_timeseries(ts: pd.DataFrame) -> pd.DataFrame:
 
 
 @deprecated(reason="replaced by a more flexible bin_by_time routine")
-def bin_by_hour(ts: pd.DataFrame):
+def bin_by_hour(ts: pd.DataFrame) -> pd.DataFrame:
     """Bin sleep stage time series by hour
 
     Args:
@@ -184,7 +184,7 @@ def bin_by_hour(ts: pd.DataFrame):
     return binned
 
 
-def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
+def bin_by_time(ts: pd.DataFrame, freq="H") -> pd.DataFrame:
     """Bin time series by the time.
     Numbers correspond to the count of signals (each 30s) within the bin.
     Expected total = bin size / time series epoch,
@@ -196,11 +196,8 @@ def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
         freq (str, optional): Bin size to bin by. Defaults to "H".
 
     Returns:
-        pd.DataFrame: Binned dataframe.
+        pd.DataFrame: Binned dataframe
     """
-
-    if freq is None:
-        freq = "H"
 
     df = ts.copy()
 
@@ -235,8 +232,10 @@ def bin_by_time(ts: pd.DataFrame, freq=None) -> pd.DataFrame:
     return binned
 
 
-def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
-    """Expand to hourly binned dataframe to a full list of hours (user-supplied, defaults to 8pm to 10am), fill with NAs if empty. Grouped by the columns specified in the 'by' option
+def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None) -> pd.DataFrame:
+    """Expand to hourly binned dataframe to a full list of hours (user-supplied, defaults to 8pm to 10am),
+    fill with NAs if empty.
+    Grouped by the columns specified in the 'by' option
 
     Args:
         df (pd.DataFrame): hourly binned dataframe
@@ -244,7 +243,7 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
         hours (list): If None, Defaults to 8pm-10am i.e. [20,21,22,23,0,1,2,3,4,5,6,7,8,9,10].
 
     Returns:
-        _type_: _description_
+        pd.DataFrame: hourly binned dataframe (expanded)
     """
     if by_columns is None:
         by_columns = ["pid", "start_date"]
@@ -266,20 +265,23 @@ def expand_full_hours(df: pd.DataFrame, hours=None, by_columns=None):
     return expanded
 
 
-def normalize_binned(df: pd.DataFrame, over=None, freq="H", epoch_length="30s"):
+def normalize_binned(
+    df: pd.DataFrame, over=None, freq="H", epoch_length=30
+) -> pd.DataFrame:
     """Normalize binned dataframe by 120
 
     Args:
         df (pd.DataFrame): binned dataframe
         over (int): [Deprecated] normalize over what? Defaults to 120 (number of 30-second intervals in an hour)
         freq (str): Bin size
+        epoch_length (int): Epoch length (in seconds). Defaults to 30
 
     Returns:
         pd.DataFrame: Normalized dataframe
     """
 
-    epochs_per_bin = (
-        pd.Timedelta(freq).total_seconds() / pd.Timedelta(epoch_length).total_seconds()
+    epochs_per_bin = pd.Timedelta(freq).total_seconds() / pd.Timedelta(
+        seconds=epoch_length
     )
 
     binned = df.copy()
@@ -296,7 +298,7 @@ def normalize_binned(df: pd.DataFrame, over=None, freq="H", epoch_length="30s"):
 #### HAOTIAN's
 
 
-def drop_days_delta(target_select, threshold=14):
+def drop_days_delta(target_select: pd.DataFrame, threshold=14) -> pd.DataFrame:
     """
     Drop PHQ test records which is <14 days from previous result
     The logic is to take the last record
@@ -335,7 +337,7 @@ def drop_days_delta(target_select, threshold=14):
 
 
 def generate_ts_y(
-    df,
+    df: pd.DataFrame,
     column_id="id_new",
     column_index="index",
     column_features=["AWAKE", "LIGHT", "DEEP", "REM"],
@@ -356,7 +358,20 @@ def generate_ts_y(
     return ts, y
 
 
-def merge_slp_phq(expanded, phqs_raw, window=15):
+def merge_slp_phq(
+    expanded: pd.DataFrame, phqs_raw: pd.DataFrame, window=15
+) -> pd.DataFrame:
+    """Merge raw PHQ test results dataframe with 'expanded' binned sleep stages dataframe,
+    grouped by 'deltaTs'
+
+    Args:
+        expanded (pd.DataFrame): Sleep stages dataframe, binned+expanded to a full list of hours
+        phqs_raw (pd.DataFrame): PHQ test results dataframe
+        window (int): 'Traceback' window size of 'deltaT'. Defaults to 15.
+
+    Returns:
+        pd.DataFrame: merged dataframe
+    """
 
     ### CLEAN phqs_raw to match Haotian's code
     target = phqs_raw[["centre", "pid", "time", "phq"]].copy()

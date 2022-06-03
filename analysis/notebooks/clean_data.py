@@ -310,11 +310,11 @@ def drop_days_delta(target_select: pd.DataFrame, threshold=14) -> pd.DataFrame:
 
     # clean
     tgt["date"] = pd.to_datetime(tgt["test_date"])
+    tgt = tgt.sort_values(["id", "date"])
 
     # calculate number of days from previous record
-    target_date_diff = (
-        tgt[["id", "date"]].sort_values(["id", "date"]).groupby("id").diff()
-    )
+    target_date_diff = tgt[["id", "date"]].groupby("id").diff()
+
     # combine with main df
     target_date_diff["daysdelta"] = target_date_diff["date"] / np.timedelta64(1, "D")
     target_select_clean = pd.concat([tgt, target_date_diff["daysdelta"]], axis=1)

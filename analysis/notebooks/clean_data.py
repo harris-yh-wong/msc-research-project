@@ -320,13 +320,13 @@ def drop_days_delta(target_select: pd.DataFrame, threshold=14) -> pd.DataFrame:
     target_select_clean = pd.concat([tgt, target_date_diff["daysdelta"]], axis=1)
 
     # filter
-    out = target_select_clean.loc[
-        (target_select_clean["daysdelta"] >= threshold)
-        | (target_select_clean["daysdelta"].isna()),
-        :,
-    ]
+    flag_pass_day_threshold = target_select_clean["daysdelta"] >= threshold
+    flag_first_test_result = target_select_clean["daysdelta"].isna()
+    flag_keep = flag_pass_day_threshold | flag_first_test_result
+    target_select_clean_filtered = target_select_clean.loc[flag_keep, :]
+
     # clean output
-    out = out.drop(["date", "daysdelta"], axis=1)
+    out = target_select_clean_filtered.drop(["date", "daysdelta"], axis=1)
     report.report_change_in_nrow(
         tgt,
         out,

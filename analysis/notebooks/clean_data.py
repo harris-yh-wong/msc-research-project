@@ -14,6 +14,14 @@ from feat_engineering import summarise_stage
 # from pandarallel import pandarallel  # parallel processing
 
 
+def sample_df(df, SAMPLE_PERCENT):
+    if SAMPLE_PERCENT == 100:
+        return df
+    keep_flag = int(np.floor(df.shape[0] * SAMPLE_PERCENT * 0.01))
+    sampled = df.head(keep_flag)
+    return sampled
+
+
 def clean_all_phq(df: pd.DataFrame) -> pd.DataFrame:
     df2 = df.copy()
     df2.columns = ["pid", "timestamp", "phq", "sleep"]
@@ -280,9 +288,7 @@ def normalize_binned(
         pd.DataFrame: Normalized dataframe
     """
 
-    epochs_per_bin = pd.Timedelta(freq).total_seconds() / pd.Timedelta(
-        seconds=epoch_length
-    )
+    epochs_per_bin = pd.Timedelta(freq).total_seconds() / epoch_length
 
     binned = df.copy()
     binned["AWAKE"] = binned["AWAKE"] / epochs_per_bin
@@ -443,11 +449,10 @@ def merge_slp_phq(
     #! replaced by
     data_merge = pd.merge(target_select, expanded, how="outer", on=["id"])
 
+    ### drop irrelevant rows
     """
     data_merge_select = data_merge.loc[(pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)) & (pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date))]
     """
-
-    ### drop irrelevant rows
     #! replaced by (formatting)
     mask1 = pd.to_datetime(data_merge.obs_start) <= pd.to_datetime(data_merge.date)
     mask2 = pd.to_datetime(data_merge.date) <= pd.to_datetime(data_merge.test_date)
@@ -572,3 +577,20 @@ def ts2intervals(ts_df: pd.DataFrame) -> pd.DataFrame:
         intervals_by_stage["duration"] / pd.Timedelta(seconds=1)
     ).astype(int)
     return intervals_by_stage
+
+
+def prep_for_drop_days_delta(phqs_raw: pd.DataFrame) -> pd.DataFrame:
+    target_new = phqs_raw[["pid", "time", "phq"]].copy()
+    target_new["test_date"] = pd.to_datetime(target_new["time"]).dt.date
+    target_new = target_new[["pid", "test_date", "phq"]].rename(columns={"pid": "id"})
+    target_new_sorted = target_new.sort_values(["id", "test_date"])
+    return target_new_sorted
+
+
+def generate_id_new(df, pid_column: str, test_date_column: str) -> pd.Series:
+    df2 = df[[pid_column, test_date_column]].copy()
+
+    df2["test_date_str"] = df2["test_date"].astype(str)
+    id_new = df2[[pid_column, "test_date_str"]].agg("_".join, axis=1)
+    assert id_new.index.equals(df.index)
+    return id_new

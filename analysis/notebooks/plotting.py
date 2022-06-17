@@ -1,4 +1,5 @@
 import os
+from attr import asdict
 import numpy as np
 import pandas as pd
 
@@ -400,3 +401,107 @@ def plot_relevant_features(relevance_table: pd.DataFrame, n_features=10) -> None
 
     sns.set(rc={"figure.figsize": (12, n_features / 2)})
     sns.barplot(y="feature", x="-logp", hue="stage", data=relevance_table_subset)
+
+
+def plot_discrimination(
+    y_test: pd.Series, y_pred: pd.Series, phq: pd.Series, phq_threshold=10
+) -> None:
+    """Plot two plots showing model discrimination.
+    Plot 1: Prediction probabilities by ground truth
+    Plot 2:
+
+    Args:
+        y_test (pd.Series): Ground truth
+        y_pred (pd.Series): Prediction probabilities
+        phq (pd.Series): PHQ score
+        phq_threshold (int): PHQ score threshold for True/False depressive status, where PHQ score >= threshold gives a True label. Defaults to 10.
+    """
+
+    # prepare the data for plotting
+    plot_df = phq.set_index("id_new").loc[y_test.index]
+    plot_df["y_pred"] = y_pred
+    plot_df["class"] = plot_df["target"] >= phq_threshold
+
+    # Bin PHQ scores into categories
+    depression_categories = ["none", "mild", "moderate", "moderately severe", "severe"]
+    plot_df["category"] = pd.cut(
+        plot_df["target"],
+        [0, 5, 10, 15, 20, 27],
+        right=False,
+        labels=depression_categories,
+    )
+    plot_df["category"] = pd.Categorical(
+        plot_df["category"], categories=depression_categories, ordered=True
+    )
+    plot_df = plot_df.sort_values("category", inplace=False)
+
+    # plot 1
+    plt.figure()
+    sns.violinplot(x="category", y="y_pred", cut=0, data=plot_df)
+    # plot 2
+    plt.figure()
+    sns.violinplot(x="class", y="y_pred", cut=0, data=plot_df)
+
+
+def plot_freq_lists(*args, show=10):
+    n_plots = len(args)
+    dfs = [series.sort_values(ascending=False).head(show) for series in args]
+    fig, ax = plt.subplots(1, n_plots)
+    for i in range(n_plots):
+        sns.barplot(dfs[i].index, dfs[i].values, ax=ax[i], palette="colorblind")
+    fig.autofmt_xdate()
+    fig.show()
+
+
+def plot_cv_results(cv_results_df, order="keep", aggregate="mean"):
+    """Plot a bar chart showing the performance metrics from a dataframe of cross-validation runs
+
+    Args:
+        cv_results_df (pd.DataFrame): Cross-validation run result dataframe, generated from cv_results2df
+        order (str, optional): Defaults to 'keep'.
+        aggregate (str, optional): Aggregate function used by pd.DataFrame.agg(). Defaults to 'mean'.
+    """
+
+    if order == "keep":
+        ordered = False
+    else:
+        ordered = True
+    cv_results_df["name"] = pd.Categorical(
+        cv_results_df["name"],
+        categories=cv_results_df["name"].unique(),
+        ordered=ordered,
+    )
+
+    longdf = pd.wide_to_long(
+        cv_results_df,
+        stubnames="test",
+        i=["name", "split"],
+        j="metric",
+        sep="_",
+        suffix=".+",
+    )
+    aggdf = (
+        longdf.reset_index().groupby(["name", "metric"]).agg(aggregate).reset_index()
+    )
+
+    g = sns.barplot(x="name", y="test", hue="metric", data=aggdf)
+    g.set_ylabel("Score")
+    g.set_xlabel("")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+
+
+def plot_roc(y_test, y_predprob):
+    """Plot a ROC curve
+
+    Args:
+        y_test (pd.Series): true class
+        y_predprob (pd.Series): predicted probabilities
+    """
+    RocCurveDisplay.from_predictions(y_test, y_predprob[:, 1])
+    plt.plot([0, 1], [0, 1], color="grey", lw=1, linestyle="--")
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.gca().set_aspect("equal", adjustable="box")
+    plt.show()

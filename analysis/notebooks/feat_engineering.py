@@ -165,4 +165,10 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
         .sum()
     )
 
+    ### summarise insomnia
+    TSTbelow6 = combined["total_sleep_time"] < 6
+    awake30atleast1 = combined["awake_30_excl"] >= 1
+    combined["insomnia"] = TSTbelow6 & awake30atleast1
+
+    ### output
     return combined

@@ -66,3 +66,43 @@ def combine_classification_reports(report_dicts, names):
 
     combined = pd.concat(results)
     return combined
+
+
+def search2df(search):
+    """Convert search results to dataframe
+
+    Args:
+        search (sklearn.model_selection._search subclasses): Subclasses of the sklearn _search class
+
+    Returns:
+        pd.DataFrame: Dataframe
+    """
+    rs = search.cv_results_
+    df_params = pd.DataFrame(rs["params"])
+
+    cols = [col for col in rs.keys() if "param" not in col]
+    dict_metrics = {k: rs[k] for k in cols if k in rs}
+    df_metrics = pd.DataFrame(dict_metrics)
+
+    df_output = pd.concat([df_params, df_metrics], axis=1)
+    return df_output
+
+
+def cv_results2df(cv_results: list, names: list, prefix=""):
+    """Convert a list of cross validation results to one dataframe.
+
+    Args:
+        cv_results (list): List of cross validation result dictionaries
+        names (list): List of names as strings
+        prefix (str, optional): Prefix to strip in column names. Defaults to empty for pivoting later.
+    """
+    cv_results_dfs = [pd.DataFrame(result) for result in cv_results]
+    out = pd.concat(cv_results_dfs, keys=names, names=["name", "split"]).reset_index()
+
+    def remove_suffix(line, prefix):
+        if line.startswith(prefix):
+            return line[len(prefix) :]
+        return line
+
+    out.columns = [remove_suffix(f, prefix) for f in out.columns]
+    return out

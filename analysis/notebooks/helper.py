@@ -5,6 +5,7 @@ import logging
 import time
 import winsound
 
+
 class Timer(object):
     """
     helper class to timing blocks of code
@@ -69,14 +70,15 @@ def cartesian_product(*arrays):
 #     d = dtale.show(obj, **kargs)
 #     return d._main_url
 
+
 def beeps():
     winsound.Beep(440, 200)
     winsound.Beep(554, 200)
     winsound.Beep(660, 200)
     winsound.Beep(880, 200)
-    
 
-def generate_parse_config_script(config, config_name='config'):
+
+def generate_parse_config_script(config, config_name="config"):
     """Generate the script to parse a config dictionary (e.g. parsed from JSON) to global variables
 
     Args:
@@ -96,5 +98,4 @@ def time2second(x: pd.Series) -> pd.Series:
     Returns:
         pd.Series: Pandas series of the time component in seconds
     """
-    return ((x.dt.hour*3600+x.dt.minute*60+x.dt.second).astype(int))
-    
+    return (x.dt.hour * 3600 + x.dt.minute * 60 + x.dt.second).astype(int)

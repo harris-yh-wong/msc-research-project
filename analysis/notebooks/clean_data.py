@@ -6,7 +6,6 @@ import pandas as pd
 import datetime as dt
 from helper import *
 import report
-from deprecated import deprecated
 from datetime import datetime
 
 from feat_engineering import summarise_stage
@@ -40,59 +39,6 @@ def clean_slps(df: pd.DataFrame) -> pd.DataFrame:
     df2["intervalID"] = np.arange(len(df2))
     df2.drop(columns="time")
     return df2
-
-
-@deprecated(reason="replaced by loop comprehension")
-def _explode2ts(
-    intervals,
-    ID="intervalID",
-    start="start",
-    end="end",
-    time="t",
-    multiprocessing=False,
-):
-    """Explode interval dataframe to time series format
-
-    Args:
-        intervals (pd.DataFrame): dateaframe of intervals
-        ID (str, optional): Column name for ID unique for each interval. Defaults to "intervalID".
-        start (str, optional): Column name for interval start time. Defaults to "start".P
-        end (str, optional): Column name for interval end time. Defaults to "end".
-        time (str, optional): Column name for time in the output. Defaults to "t".
-
-    Returns:
-        pd.DataFrame: time series dataframe
-    """
-
-    def expand_to_start_times(row, start_col_name="start", end_col_name="end"):
-        """
-        Expand a time interval denoted by start-end to a list of start times
-        Helper function called by explode2ts
-
-        Input: row[start_column] = 2019-01-01 00:01:00, row[end_column] = 2019-0101 00:02:30
-        Output: ['2019-01-01 00:01:00', '2019-01-01 00:01:30', '2019-01-01 00:02:00']
-        """
-        return pd.date_range(
-            start=row[start_col_name], end=row[end_col_name], freq="30s", closed=None
-        )
-
-    timeseries = intervals[[ID, start, end]]
-    if multiprocessing:
-        print("no multiprocessing, fix later")
-        ### currently the pandarallel package breaks
-        # timeseries[time] = timeseries.parallel_apply(
-        #     expand_to_start_times, start=start, end=end, axis=1
-        # )
-        timeseries[time] = timeseries.apply(
-            expand_to_start_times, start_col_name=start, end_col_name=end, axis=1
-        )
-    else:
-        timeseries[time] = timeseries.apply(
-            expand_to_start_times, start_col_name=start, end_col_name=end, axis=1
-        )
-
-    timeseries = timeseries[[ID, time]].explode(time)
-    return timeseries
 
 
 def explode2ts(ts_df: pd.DataFrame) -> pd.DataFrame:
@@ -174,13 +120,14 @@ def dedup_timeseries(ts: pd.DataFrame) -> pd.DataFrame:
     return dedupped
 
 
-@deprecated(reason="replaced by a more flexible bin_by_time routine")
 def bin_by_hour(ts: pd.DataFrame) -> pd.DataFrame:
-    """Bin sleep stage time series by hour
+    """DEPRECATED. Bin sleep stage time series by hour
 
     Args:
         ts (pd.DataFrame): time series dataframe
     """
+    print("`bin_by_hour` is deprecated, use the more flexible `bin_by_time` instead.")
+
     df = ts.copy()
     df["hour"] = df["t"].dt.hour
     df = pd.concat([df, pd.get_dummies(df["stages"])], axis=1)
@@ -482,7 +429,7 @@ def merge_slp_phq(
     return data_merge_select
 
 
-def add_night_date(
+def label_night_date(
     ts_df: pd.DataFrame, sleep_hour_end: str, time_column="t"
 ) -> pd.DataFrame:
     """Add a corresponding `night_date`.

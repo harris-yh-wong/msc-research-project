@@ -86,22 +86,25 @@ def drop_awakenings_outside_delta_sleep(
 
 def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame:
     """Generate domain-knowledge-driven summary statistics per subject per night
-    - note the difference between defined 'sleep times' and delta_t
+    - note the difference between defined 'sleep times' and $\Delta t$
 
-    | Column                            | Description                                                                                                          |
-    |-----------------------------------|----------------------------------------------------------------------------------------------------------------------|
-    | `first`                           | the first non-AWAKE timestamp within the defined 'sleep times'
-    | `last`                            | the last non-AWAKE timestamp within the defined 'sleep times'
-    | `delta_sleep`                     | `last` minus `first` + 1 epoch
-    | `AWAKE`/`DEEP`/`LIGHT`/`REM`      | number of **recorded** hours of AWAKE/DEEP/LIGHT/REM within the defined 'sleep times'
-    | `total`                           | total number of **recorded** hours within the defined 'sleep times' / also known as "time in bed" in YueZhou's paper
-    | `total_sleep_time`                | total number of **recorded** non-awake hours within the defined 'sleep times'
-    | `missing`                         | `delta_sleep` minus `total_nonawake` ?????
-    | `offset_time_hour`                | `last` in terms of #hours from midnight
-    | `TSTover10`                       | `total_sleep_time` over 10 hours
-    | `insomnia`                        | Middle insomnia, defined as `total_sleep_time` < 6h AND >= 1 prolonged awakening of >=30 minutes
-    | `awake_..._...`                   | Number of awakenings: >=30m/>5m; `excl`=excluding awakenings outsdie of `first` and `last`
-
+    | Column                       | Description                                                                                                  |
+    |------------------------------|--------------------------------------------------------------------------------------------------------------|
+    | `first`                      | the first non-AWAKE timestamp within the defined 'sleep times'
+    | `last`                       | the last non-AWAKE timestamp within the defined 'sleep times'
+    | `delta_sleep`                | `last` minus `first` + 1 epoch
+    | `AWAKE`/`DEEP`/`LIGHT`/`REM` | number of **recorded** hours of AWAKE/DEEP/LIGHT/REM within the defined 'sleep times'
+    | `time_bed`                   | total number of **recorded** hours within the defined 'sleep times'.
+    | `total_sleep_time`           | total number of **recorded** non-awake hours within the defined 'sleep times'
+    | `..._time_hour`              | `first`/`last` in terms of #hours from midnight
+    | `TSTover10`                  | `total_sleep_time` over 10 hours
+    | `efficiency`                 | percentage of `total_sleep_time` over `time_bed`.
+    | `..._pct`                    | percentage of AWAKE/DEEP/LIGHT/REM/non-REM over `time_bed`.
+    | `weekend`                    | Weekend (boolean). Whether deltaT starts on a Saturday or Sunday.
+    | `fri_sat`                    | Friday_saturday (boolean). Whether deltaT starts on a Friday or Saturday (i.e. ending on weekends).
+    | `missing`                    | `delta_sleep` minus `total_nonawake` ?????
+    | `awake_..._...`              | Number of awakenings: >=30m/>5m; `excl`=excluding awakenings outsdie of `first` and `last`
+    | `insomnia`                   | Middle insomnia (boolean), defined as `total_sleep_time` < 6h AND >= 1 prolonged awakening of >=30 minutes
 
     Args:
         ts (pd.DataFrame): Time series dataframe
@@ -125,7 +128,7 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
         * epoch_length
         / 3600
     )
-    hours_per_stage_per_night["total"] = hours_per_stage_per_night.sum(axis=1)
+    hours_per_stage_per_night["time_bed"] = hours_per_stage_per_night.sum(axis=1)
 
     ### Combine them
     # the indices may not be equal, there may be nights with entirely empty nights
@@ -134,9 +137,31 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
 
     ### Other stats
     combined["total_sleep_time"] = combined[["DEEP", "LIGHT", "REM"]].sum(axis=1)
+    combined["onset_time_hour"] = helper.time2second(combined["first"]) / 3600
     combined["offset_time_hour"] = helper.time2second(combined["last"]) / 3600
     combined["TSTover10"] = combined["total_sleep_time"] > 10
-    combined["awake_pct"] = combined["AWAKE"] / combined["total"] * 100
+    combined["efficiency"] = combined["total_sleep_time"] / combined["time_bed"] * 100
+
+    ### Percentages
+    combined["awake_pct"] = combined["AWAKE"] / combined["time_bed"] * 100
+    combined["deep_pct"] = combined["DEEP"] / combined["time_bed"] * 100
+    combined["light_pct"] = combined["LIGHT"] / combined["time_bed"] * 100
+    combined["REM_pct"] = combined["REM"] / combined["time_bed"] * 100
+    combined["NREM_pct"] = (
+        (combined["DEEP"] + combined["LIGHT"]) / combined["time_bed"] * 100
+    )
+
+    ### Day of Week
+    def flag_day_of_week(df, days_to_flag):
+        # monday=0, sunday=6
+        night_dates = df.index.get_level_values(level="night_date")
+        night_dates = pd.to_datetime(pd.Series(night_dates, index=df.index))
+
+        flag = night_dates.dt.dayofweek.isin(days_to_flag)
+        return flag
+
+    combined["weekend"] = flag_day_of_week(combined, [5, 6])
+    combined["fri_sat"] = flag_day_of_week(combined, [4, 5])
 
     ### summarise awakenings
     awakenings = summarise_stage(ts, stage="AWAKE", epoch_length=epoch_length)

@@ -505,3 +505,47 @@ def plot_roc(y_test, y_predprob):
     plt.ylabel("True Positive Rate")
     plt.gca().set_aspect("equal", adjustable="box")
     plt.show()
+
+
+def plot_cdf(s: pd.Series):
+    """Plot the cumulative distribution function
+
+    Args:
+        s (pd.Series): A count series e.g. from pd.DataFrame.value_counts('column')
+    """
+    cdf = (s / sum(s)).cumsum()
+
+    fig, ax = plt.subplots()
+    ax.plot(cdf, marker="o")
+    plt.ylim([-0.05, 1.05])
+    plt.show()
+
+
+def plot_correlation_heatmap(df, title=None):
+    # Compute the correlation matrix
+    corr = df.corr()
+
+    # Generate a mask for the upper triangle
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+
+    # Set up the matplotlib figure
+    f, ax = plt.subplots(figsize=(20, 20))
+
+    # Generate a custom diverging colormap
+    cmap = sns.diverging_palette(230, 20, as_cmap=True)
+
+    # Draw the heatmap with the mask and correct aspect ratio
+    sns.heatmap(
+        corr,
+        mask=mask,
+        cmap=cmap,
+        vmax=1,
+        vmin=-1,
+        center=0,
+        square=True,
+        linewidths=0.5,
+        cbar_kws={"shrink": 0.5},
+    )
+
+    if title is not None:
+        ax.set_title(title)

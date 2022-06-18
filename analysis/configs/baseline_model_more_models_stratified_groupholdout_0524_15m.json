@@ -1,0 +1,14 @@
+{
+    "PATH_TO_PREPROCESSED_DATA": "data/clean/preprocess0523_15m/data_merge2.ftr",
+    "DIR_TO_FEATURES": "data/clean/tsfresh0523_15m",
+    "OUTPUT_DIR": "data/artefacts/baseline_models_0524_15m",
+    "SEED": 123,
+    "TEST_SIZE": 0.3,
+    "STRATIFY_BY_PID": true,
+    "N_JOBS": -1,
+    "KFOLD": 5,
+    "SCORING": "balanced_accuracy",
+    "N_SPLITS": 5,
+    "N_REPEATS": 3,
+    "_description": "For baseline_model_more_models_stratified_groupholdout_0524.ipynb on Google Colab."    
+}

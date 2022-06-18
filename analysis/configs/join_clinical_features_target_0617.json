@@ -1,0 +1,26 @@
+{
+    "path_to_clinical_features": "data/artefacts/clinical_features_per_night_0617.ftr",
+    "dir_export": "data/clean/preprocess0617",
+    "cols_annotation_id_new": [
+        "pid",
+        "test_date",
+        "phq"
+    ],
+    "cols_agg_mean": [
+        "total_sleep_time",
+        "offset_time_hour",
+        "awake_pct",
+        "insomnia",
+        "TSTover10",
+        "time_bed",
+        "light_pct",
+        "NREM_pct",
+        "efficiency"
+    ],
+    "cols_agg_std": [
+        "total_sleep_time",
+        "onset_time_hour",
+        "offset_time_hour"
+    ],
+    "_DESCRIPTION": "To run locally for the `join_clinical_features_target_0603.ipynb`. Added aggregation for new features apart from the top 5 features in previous runs."
+}

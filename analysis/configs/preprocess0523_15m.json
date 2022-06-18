@@ -1,0 +1,15 @@
+{
+	"WRITE_TO_DISK": true,
+    "OUTPUT_DIRNAME": "preprocess0523_15m",
+    "PATH_TO_NONOVERLAP_TIMESERIES": "data/clean/preprocessApr09/dedupped.ftr",
+    "SAMPLE_PERCENT": 100,
+    "SLEEP_TIME_START": "20:00",
+    "SLEEP_TIME_END": "10:00",
+    "HOURS_ORDERED" : [80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39],
+    "FREQ": "15min",
+    "DEBUG_HOURS": false,
+    "PANDEMIC_CUTOFF_DATESTRING": "2020-01-30",
+    "SUBSET_START_DATE": null,
+    "SUBSET_END_DATE": null,
+    "SUBSET_PID":  null
+}

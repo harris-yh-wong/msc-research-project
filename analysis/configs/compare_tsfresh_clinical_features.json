@@ -1,0 +1,14 @@
+{
+    "PATH_TO_PREPROCESSED_DATA": "data/clean/preprocess0523_15m/data_merge2.ftr",
+    "DIR_TO_FEATURES": "data/clean/tsfresh0523_15m",
+    "OUTPUT_DIR": "data/artefacts/compare_tsfresh_clinical_features_0607",
+    "SEED": 123,
+    "TEST_SIZE": 0.3,
+    "STRATIFY_BY_PID": true,
+    "N_JOBS": -1,
+    "KFOLD": 5,
+    "SCORING": "balanced_accuracy",
+    "N_SPLITS": 5,
+    "N_REPEATS": 3,
+    "_description": "For compare_tsfresh_clincial_features_0607.ipynb on Google Colab."
+}

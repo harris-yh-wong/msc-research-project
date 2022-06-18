@@ -1,0 +1,8 @@
+{
+    "PATH_TO_PREPROCESSED_DATA": "data/clean/preprocess0523_30m/data_merge2.ftr",
+    "OUTPUT_DIRNAME": "data/clean/tsfresh0523_30m",
+    "SEED":42,
+    "SAMPLE_PERCENT": 100,
+    "PHQ_CUTOFF": 10,
+    "MIN_NONMISSING_NIGHT": 12
+}

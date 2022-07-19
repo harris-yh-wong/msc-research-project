@@ -283,7 +283,7 @@ def drop_days_delta(target_select: pd.DataFrame, threshold=14) -> pd.DataFrame:
     report.report_change_in_nrow(
         tgt,
         out,
-        operation="Drop PHQ test results which are within 14 days from previous result",
+        operation="Drop PHQ test results which are within 14 days from previous questionnaire",
     )
 
     return out
@@ -439,6 +439,7 @@ def label_night_date(
     Args:
         ts_df (pd.DataFrame): Time series dataframe.
         sleep_hour_end (str): When does the sleeping hours end? In string format e.g. '10:00'.
+        time_column (str): Which column to label
 
     Returns:
         pd.DataFrame: Dataframe with added `night_date` column
@@ -541,3 +542,9 @@ def generate_id_new(df, pid_column: str, test_date_column: str) -> pd.Series:
     id_new = df2[[pid_column, "test_date_str"]].agg("_".join, axis=1)
     assert id_new.index.equals(df.index)
     return id_new
+
+
+def split_id_new(id_new):
+    df_id_new_pid = id_new.str.split("_", expand=True)
+    df_id_new_pid.columns = ["pid", "night_date"]
+    return df_id_new_pid

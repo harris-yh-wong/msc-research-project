@@ -4,12 +4,13 @@ import numpy as np
 from sklearn.model_selection import GroupShuffleSplit
 
 from typing import Tuple
+from clean_data import split_id_new
 
 
 def train_test_split_grouped(
     X: pd.DataFrame, y: pd.Series, test_size: float, random_state: int
 ):
-    groups = y.index.str.split("_", expand=True).get_level_values(0)
+    groups = split_id_new(pd.Series(y.index))["pid"]
     splitter = GroupShuffleSplit(
         test_size=test_size, n_splits=1, random_state=random_state
     )

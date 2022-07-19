@@ -148,6 +148,144 @@ def plot_dedupped_intervals(
     return fig
 
 
+def plot_deltaT_similarity(df):
+    assert df.shape[0] != 0, "Input dataframe cannot be empty."
+
+    # plot
+    stages = ["AWAKE", "REM", "LIGHT", "DEEP"]
+
+    fig, axes = plt.subplots(ncols=4, figsize=(24, 3.5))
+    for i, ax in enumerate(axes.flatten()):
+        stage = stages[i]
+        sns.lineplot(
+            y=stage, x="slp_stage_hour_to_plot", hue="night_date", data=df, ax=ax
+        )
+        ax.set_title(stage)
+        if i + 1 >= len(stages):  # last subplot
+            ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
+        else:
+            ax.get_legend().remove()
+
+    title = df["id_new"].unique()[0]
+    fig.suptitle(title)
+    return fig
+
+
+def plot_hypnogram(
+    plotdf: pd.DataFrame,
+    metadata: pd.DataFrame,
+    sleep_hour_start: str,
+    sleep_hour_end: str,
+    c_dict=None,
+    max_nights=30,
+):
+    """Plot dedupped intervals into a coloured stacked bars
+
+    Args:
+        plotdf (pd.DataFrame): Interval dataframe for plotting. Should be dedupped.
+        metadata (pd.DataFrame): Metadata from `import_data.import_data()`
+        sleep_hour_start (str): When does the 'sleep time' start? e.g. '20:00'
+        sleep_hour_end (str): When does the 'sleep time' end? e.g. '10:00'
+        c_dict (dict, optional): Color palette dictionary. Defaults to None, using a prespecified colour palette
+    """
+
+    ### CHECKS
+    # ensure all columns are there
+    required_cols = [
+        "pid",
+        "night_date",
+        "duration",
+        "start",
+        "end",
+        "stages",
+    ]
+    assert set(required_cols).issubset(
+        set(plotdf.columns)
+    ), "Required column(s) missing."
+    plotdf = plotdf[required_cols]
+
+    # ensure all observations come from the same patient
+    assert plotdf["pid"].nunique() == 1, "PIDs not unique in the input dataframe."
+
+    # ensure duration is in number of seconds
+    assert plotdf["duration"].dtype in [
+        "int32",
+        "float64",
+    ], "Duration should be in number of seconds."
+
+    # number of nights / fig size
+    n_nights = plotdf["night_date"].nunique()
+    assert n_nights <= max_nights, "Too many nights. Increase `max_nights`."
+
+    # default hours
+    c_dict = {
+        "AWAKE": "red",
+        "REM": "gold",
+        "LIGHT": "lightblue",
+        "DEEP": "steelblue",
+        "UNKNOWN": "gray",
+    }
+
+    # axis limits,
+    # required later
+    start = pd.to_datetime(sleep_hour_start)
+    start_hours = (start - start.normalize()).total_seconds() / 3600
+    end = pd.to_datetime(sleep_hour_end)
+    end_hours = (end - end.normalize()).total_seconds() / 3600
+
+    # plotting order of nights and stages (for stages, sort later)
+    plotdf.sort_values("night_date", inplace=True)
+    stages = ["AWAKE", "REM", "LIGHT", "DEEP"]
+    mapping = {day: i for i, day in enumerate(stages)}
+    n_nights = plotdf["night_date"].nunique()
+
+    # plot
+    fig, axes = plt.subplots(nrows=n_nights, ncols=1, figsize=(16, n_nights))
+    for i, ax in enumerate(axes.flat):
+
+        night = plotdf["night_date"].unique()[i]
+        night_df = plotdf.query("night_date == @night")
+
+        # plotting order
+        key = night_df["stages"].map(mapping)
+        night_df = night_df.iloc[key.argsort()]
+
+        colors = [c_dict[stage] for stage in night_df["stages"]]
+
+        # convert to number of hours
+        widths = night_df["duration"] / 3600
+        lefts = (
+            night_df["start"] - night_df["start"].dt.normalize()
+        ).dt.total_seconds() / 3600
+        # put everything after midnight
+        lefts = [left + 24 if left <= end_hours else left for left in lefts]
+
+        ax.barh(
+            y=night_df["stages"].astype(str),
+            width=widths,
+            left=lefts,
+            color=colors,
+        )
+
+        # axis
+        ax.set_xlim(start_hours, 24 + end_hours)
+        ax.invert_yaxis()
+
+        ax.text(start_hours, 0, str(night))
+
+        # frames
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        if n_nights - i > 1:
+            ax.xaxis.set_ticklabels([])
+
+    # title
+    title = plotdf.iloc[0]["pid"]
+    fig.suptitle(title)
+    return fig
+
+
 def plot_gannt(plotdf, metadata, c_dict=None, overlap=True):
     # default colors
     if not c_dict:

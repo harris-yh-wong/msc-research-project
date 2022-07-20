@@ -84,7 +84,9 @@ def drop_awakenings_outside_delta_sleep(
     return awakenings_excl
 
 
-def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame:
+def summarise_stats_per_night(
+    ts: pd.DataFrame, sleep_hour_start, sleep_hour_end, epoch_length=30
+) -> pd.DataFrame:
     """Generate domain-knowledge-driven summary statistics per subject per night
     - note the difference between defined 'sleep times' and $\Delta t$
 
@@ -135,10 +137,22 @@ def summarise_stats_per_night(ts: pd.DataFrame, epoch_length=30) -> pd.DataFrame
     # use left join instead
     combined = stats_per_night.join(hours_per_stage_per_night, how="left")
 
+    ### onset/offset times
+    start = pd.to_datetime(sleep_hour_start)
+    start_hours = (start - start.normalize()).total_seconds() / 3600
+    end = pd.to_datetime(sleep_hour_end)
+    end_hours = (end - end.normalize()).total_seconds() / 3600
+
+    onset = helper.time2second(combined["first"]) / 3600
+    onset = [h + 24 if h <= end_hours else h for h in onset]
+    combined["onset_time_hour"] = pd.Series(onset, index=combined.index)
+
+    offset = helper.time2second(combined["last"]) / 3600
+    offset = [h + 24 if h <= end_hours else h for h in offset]
+    combined["offset_time_hour"] = pd.Series(offset, index=combined.index)
+
     ### Other stats
     combined["total_sleep_time"] = combined[["DEEP", "LIGHT", "REM"]].sum(axis=1)
-    combined["onset_time_hour"] = helper.time2second(combined["first"]) / 3600
-    combined["offset_time_hour"] = helper.time2second(combined["last"]) / 3600
     combined["TSTover10"] = combined["total_sleep_time"] > 10
     combined["efficiency"] = combined["total_sleep_time"] / combined["time_bed"] * 100
 

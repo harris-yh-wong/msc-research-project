@@ -75,11 +75,13 @@ with st.form(key="my_form_to_submit"):
 if submit_button:
     if WINDOW_14:
         START_DATE = END_DATE - dt.timedelta(days=14)
-    ### hypnogram
+
+    ### SUBSET DATA
     plotdf = plotting.subset_intervals(
         intervals, start_date=START_DATE, end_date=END_DATE, id=PID
     )
 
+    ### PLOT HYPNOGRAM
     if plotdf.shape[0] == 0:
         st.write("No data found with this criteria!")
     else:
@@ -89,16 +91,18 @@ if submit_button:
         )
         st.pyplot(fig)
 
+    ### SHOW PHQS QUESTIONNAIRE RESULTS
     show = phqs_raw.query("pid == @PID")
     show = show.loc[pd.to_datetime(show["time"]).dt.date == END_DATE]
+
     st.dataframe(show)
-    # ### binned
+
+    ### PLOT BINNED TIME SERIES
     # plt.figure()
     # fig = plotting.plot_binned(binned60, max_plots=1)
     # st.pyplot(fig)
 
-    if WINDOW_14:
-        show = clinical_features_per_night.query(
-            "pid == @PID & night_date >= @START_DATE & night_date <= @END_DATE"
-        )
-        st.dataframe(show)
+    show = clinical_features_per_night.query(
+        "pid == @PID & night_date >= @START_DATE & night_date <= @END_DATE"
+    )
+    st.dataframe(show)

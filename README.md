@@ -11,19 +11,24 @@ Based on depression's bi-directional relationship with sleep, this project inves
 ## 📌 Key Results
 
 ![](viz/prelim_results/study_design_table.png)
+
 Table showing study design. Four comparisons would be made, which compares the performance of (i) hand-crafted features driven by domain knowledge and (ii) features extracted in an unsupervised manner. The effect of using CNN to explore night-to-night variations of domain-knowledge-driven features would be explored.
 
 
 ![](viz/prelim_results/preprocessing.svg)
+
 Flow diagram showing the preprocessing.
 
 ![](viz/prelim_results/corr_heatmap_summary_features.png)
+
 Correlation heatmap of handcrafted summary features
 
 ![](viz/prelim_results/binned_timeseries.png)
+
 Time series resulting from binning of the original *simple symbolic sequence* into a numeric time series, which is the input to feature extraction by `tsfresh`
 
 ![](viz/prelim_results/baseline_classifiers_performance.png)
+
 Performance of baseline machine learning classifiers (support vector classifier and random forest) of using different datasets, using 5-fold cross validation grouped by subjects.
 
 

@@ -14,6 +14,8 @@ import matplotlib.patches
 import datetime as dt
 import seaborn as sns
 
+from sklearn.metrics import RocCurveDisplay
+
 
 def subset_intervals(
     intervals: pd.DataFrame, start_date=None, end_date=None, id=None, msg=None
@@ -217,7 +219,7 @@ def plot_hypnogram(
     n_nights = plotdf["night_date"].nunique()
     assert n_nights <= max_nights, "Too many nights. Increase `max_nights`."
 
-    # default hours
+    # default stage colours
     c_dict = {
         "AWAKE": "red",
         "REM": "gold",
@@ -241,6 +243,7 @@ def plot_hypnogram(
 
     # plot
     fig, axes = plt.subplots(nrows=n_nights, ncols=1, figsize=(16, n_nights))
+    # loop for each night
     for i, ax in enumerate(axes.flat):
 
         night = plotdf["night_date"].unique()[i]

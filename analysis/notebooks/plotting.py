@@ -631,14 +631,16 @@ def plot_cv_results(cv_results_df, order="keep", aggregate="mean"):
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.0)
 
 
-def plot_roc(y_test, y_predprob):
+def plot_roc(y, y_pred, col_index=1):
     """Plot a ROC curve
 
     Args:
         y_test (pd.Series): true class
-        y_predprob (pd.Series): predicted probabilities
+        y_pred (np.ndarray): predicted probabilities
+        col_index (int): which column to index? Defaults to 1.
+
     """
-    RocCurveDisplay.from_predictions(y_test, y_predprob[:, 1])
+    RocCurveDisplay.from_predictions(y, y_pred[:, col_index])
     plt.plot([0, 1], [0, 1], color="grey", lw=1, linestyle="--")
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])

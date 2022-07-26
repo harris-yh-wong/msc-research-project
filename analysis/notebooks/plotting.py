@@ -690,3 +690,36 @@ def plot_correlation_heatmap(df, title=None):
 
     if title is not None:
         ax.set_title(title)
+
+
+def plot_learningCurve(history_dict, score="accuracy", stack_vertical=False):
+
+    epoch = pd.DataFrame(history_dict).shape[0]
+    epoch_range = range(1, epoch + 1)
+
+    nrow, ncol = (1, 2)
+    figsize = (12, 4)
+    if stack_vertical:
+        nrow, ncol = (2, 1)
+        figsize = (4, 12)
+
+    fig, (ax1, ax2) = plt.subplots(nrow, ncol, figsize=figsize)
+
+    # Plot training & validation accuracy values
+
+    ax1.plot(epoch_range, history_dict[score])
+    ax1.plot(epoch_range, history_dict[f"val_{score}"])
+    ax1.set_title(f"Model {score}")
+    ax1.set_ylabel(score)
+    ax1.set_xlabel("Epoch")
+    ax1.legend(["Train", "Val"], loc="upper left")
+
+    # Plot training & validation loss values
+    ax2.plot(epoch_range, history_dict["loss"])
+    ax2.plot(epoch_range, history_dict["val_loss"])
+    ax2.set_title("Model loss")
+    ax2.set_ylabel("Loss")
+    ax2.set_xlabel("Epoch")
+    ax2.legend(["Train", "Val"], loc="upper left")
+
+    return fig
